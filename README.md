@@ -1,99 +1,103 @@
-# Autonomous Network Management System with MAPE-K Loop
+# Autonomous System with MAPE-K Loop
 
 ## Overview
 
 This project implements an autonomous software system based on the MAPE-K loop (Monitor, Analyze, Plan, Execute, Knowledge).  
-The system autonomously manages a local network by continuously observing network conditions and adapting its configuration to ensure efficiency, reliability, and security.  
-It utilizes containerized components and OSGi-based modules to simulate a smart and reactive network environment.
+The system is designed to monitor and adapt the behavior of a **computer network** by simulating network activity and reacting in real-time to changing traffic, bandwidth usage, and possible anomalies.
 
-![system image view](file:///home/alessandro/Desktop/Università/magistrale/1_anno/as/autonomous-system/mape-k.png?msec=1744634057812)
+All components are containerized via Docker, and the system is fully modular thanks to the use of **OSGi** for dynamic management of sensors and actuators.
 
-## Topic
+## Application Domain
 
-The main goal of the system is to implement an **autonomous network management system** capable of:
+The goal of the system is to manage and optimize the behavior of a **simulated network infrastructure**. It achieves this by continuously analyzing key performance indicators such as:
 
-- Optimizing traffic flow and bandwidth usage.
-- Reacting to performance issues (e.g., high latency, congestion, packet loss).
-- Reconfiguring network parameters and QoS settings dynamically.
-- Detecting and reacting to suspicious or unauthorized devices.
-- Supporting high-level goals like "prioritize real-time video conferencing" or "minimize energy usage".
+- Traffic flow
+- Bandwidth usage
+- Network latency
+- Packet loss
+- Number of connected devices
+- Suspicious activity detection
 
-The system is useful in smart environments such as home networks, small offices, or campus LANs.
+The system ensures that the network remains healthy, responsive, and protected through self-adaptive mechanisms implemented in the MAPE-K cycle.
 
 ## Tools and Frameworks
 
-To enhance modularity and flexibility, the system is built using Docker containers, each representing a component of the MAPE-K loop:
+- **Docker**: orchestration of containers
+- **Mosquitto**: MQTT broker for sensor/actuator communication
+- **OSGi (Equinox)**: modular simulation of sensors and actuators as bundles
+- **PHP**: Analyzer (analyzes incoming metrics)
+- **Node.js**: Planner (generates action plans)
+- **InfluxDB**: Knowledge component, used as a time series database
 
-- **Monitor**
-  - **mosquitto**: MQTT broker used to coordinate communication between components.
-  - **sensors (OSGi)**: Simulated OSGi bundles collecting data about network conditions (e.g., traffic load, latency, connected devices).
-  
-- **Analyze**
-  - **analyzer (PHP)**: Receives and processes sensor data to detect anomalies and identify optimization opportunities.
-  
-- **Plan**
-  - **planner (Node.js)**: Decides on concrete adaptation actions based on the analysis and current goals.
-  
-- **Execute**
-  - **actuators (OSGi)**: OSGi bundles that receive execution commands and simulate actions like bandwidth throttling, QoS reconfiguration, or device isolation.
+## Simulated Network Sensors
 
-- **Knowledge**
-  - **influxdb**: Time-series database used to store historical network data and knowledge for supporting decision-making.
+Each sensor is implemented as a separate OSGi bundle that generates simulated data and publishes it to a dedicated MQTT topic. Each topic corresponds to a type of sensor:
 
-## Autonomous System Definition
+| Topic                     | Description                          | Sample Payload |
+|--------------------------|--------------------------------------|----------------|
+| `network/traffic_flow`   | Current traffic (kB/s)               | `2300.45`      |
+| `network/bandwidth_usage`| Bandwidth usage (%)                  | `72.8`         |
+| `network/latency`        | Average latency (ms)                 | `43`           |
+| `network/packet_loss`    | Packet loss rate (%)                 | `0.5`          |
+| `network/connected_devices` | Number of active devices         | `12`           |
+| `network/suspicious_activity` | Risk level or alert             | `low`, `true`  |
 
-This is a self-managing autonomic system that supports the following properties:
+Each bundle can be started/stopped independently, enabling or disabling a specific metric stream dynamically.
 
-- **Self-configuration**: Automatically configures network parameters and adapts to newly connected devices.
-- **Self-optimization**: Monitors and improves network performance by adjusting QoS, balancing bandwidth, or rerouting traffic.
-- **Self-healing**: Detects and mitigates faults like lost connectivity, degraded performance, or service interruption.
-- **Self-protection**: Recognizes abnormal network activity and isolates suspicious devices or traffic patterns.
+---
 
-## Self-Management Implementations
+# Autonomous Behavior
 
-### Self-Configuration
+## Self-Configuration
 
-- Automatically discovers and configures new sensors and actuators.
-- Assigns default roles or priorities to new devices based on type or usage.
+The system is able to self-configure by dynamically discovering and integrating new sensor bundles via OSGi. When a new sensor JAR is deployed, it automatically starts publishing data to its respective topic without requiring changes to the rest of the system.
 
-### Self-Optimization
+**Example**: Deploying a new `latency` sensor bundle causes the system to start monitoring network delay and adapting accordingly, even if the metric was previously unavailable.
 
-- Detects bandwidth congestion and reroutes or throttles traffic.
-- Identifies peak hours and adapts QoS to prioritize critical services (e.g., video calls over downloads).
+---
 
-### Self-Healing
+## Self-Optimization
 
-- Monitors for anomalies such as excessive packet loss or device unreachability.
-- Reconfigures network routes or resets affected components when a fault is detected.
+Based on the metrics collected, the system identifies optimization opportunities such as:
 
-### Self-Protection
+- High bandwidth usage → suggest rerouting or throttling.
+- Increasing latency → increase priority for real-time traffic.
+- Unbalanced traffic flow → redistribute loads or devices.
 
-- Detects unexpected devices connecting to the network.
-- Executes mitigation strategies like isolating MAC addresses, notifying administrators, or limiting access.
+The planner uses heuristic or rule-based logic to decide how to optimize resource usage and maximize network performance.
 
-## Architecture Overview
+---
 
-- Modular, containerized architecture.
-- Each MAPE-K component runs in its own container.
-- Sensors and actuators are dynamically managed OSGi bundles.
-- MQTT is used as the communication backbone for decoupled and extensible interactions.
+## Self-Healing
 
-## Distribution
+The system can detect abnormal or degraded performance patterns and attempt corrective actions automatically.
 
-You can run this project on your personal machine using Docker.
+**Example**:
+- Spike in packet loss or latency → restart affected components or reduce non-critical traffic.
+- Sudden drop in traffic flow or connected devices → assume failure and initiate reconnection or alert.
 
-### Prerequisites
+---
 
+## Self-Protection
+
+Basic anomaly detection is implemented to simulate **intrusion detection** and mitigate risks.
+
+**Example**:
+- Suspicious activity detected (`true` or `high` on `network/suspicious_activity`) → system may simulate firewall updates, temporary connection blocks, or send notifications to the administrator group.
+
+Future work may integrate more advanced ML-based threat detection systems.
+
+---
+
+## Pre-requisites
+
+- Docker
 - Git
-- Docker + Docker Compose
-- The following ports must be available:
-  - `1883` (MQTT Broker)
-  - `8080` (Analyzer server)
-  - `3000` (Planner server)
-  - `8086` (InfluxDB)
+- Open ports for Mosquitto, InfluxDB, PHP, Node.js
 
-### Installation
+## Installation
 
 ```bash
-git clone https://github.com/itsmealessandro/autonomous-system
+git clone https://github.com/itsmealessandro/Autonomous-Network-Management.git
+cd Autonomous-Network-Management
 docker compose up
