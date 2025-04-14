@@ -1,0 +1,24 @@
+!SESSION 2025-03-07 15:27:56.493 -----------------------------------------------
+eclipse.buildId=unknown
+java.version=21.0.2
+java.vendor=Oracle Corporation
+BootLoader constants: OS=linux, ARCH=x86_64, WS=gtk, NL=en_US
+Command-line arguments:  -console
+
+!ENTRY org.eclipse.osgi 4 0 2025-03-07 15:27:56.798
+!MESSAGE Could not find bundle: org.eclipse.equinox.console
+!STACK 0
+org.osgi.framework.BundleException: Could not find bundle: org.eclipse.equinox.console
+	at org.eclipse.core.runtime.internal.adaptor.ConsoleManager.checkForConsoleBundle(ConsoleManager.java:70)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.startup(EclipseStarter.java:383)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:267)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.main(EclipseStarter.java:242)
+
+!ENTRY org.eclipse.osgi 4 0 2025-03-07 15:27:56.815
+!MESSAGE Application error
+!STACK 1
+java.lang.IllegalStateException: Unable to acquire application service. Ensure that the org.eclipse.core.runtime bundle is resolved and started (see config.ini).
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:86)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:439)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:271)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.main(EclipseStarter.java:242)
