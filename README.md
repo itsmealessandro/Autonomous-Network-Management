@@ -35,12 +35,12 @@ Each sensor is implemented as a separate OSGi bundle that generates simulated da
 
 | Topic                     | Description                          | Sample Payload |
 |--------------------------|--------------------------------------|----------------|
-| `network/traffic_flow`   | Current traffic (kB/s)               | `2300.45`      |
-| `network/bandwidth_usage`| Bandwidth usage (%)                  | `72.8`         |
-| `network/latency`        | Average latency (ms)                 | `43`           |
-| `network/packet_loss`    | Packet loss rate (%)                 | `0.5`          |
-| `network/connected_devices` | Number of active devices         | `12`           |
-| `network/suspicious_activity` | Risk level or alert             | `low`, `true`  |
+| `traffic_flow`   | Current traffic (kB/s)               | `2300.45`      |
+| `bandwidth_usage`| Bandwidth usage (%)                  | `72.8`         |
+| `latency`        | Average latency (ms)                 | `43`           |
+| `packet_loss`    | Packet loss rate (%)                 | `0.5`          |
+| `connected_devices` | Number of active devices         | `12`           |
+| `suspicious_activity` | Risk level or alert             | `low`, `true`  |
 
 Each bundle can be started/stopped independently, enabling or disabling a specific metric stream dynamically.
 
@@ -73,6 +73,7 @@ The planner uses heuristic or rule-based logic to decide how to optimize resourc
 The system can detect abnormal or degraded performance patterns and attempt corrective actions automatically.
 
 **Example**:
+
 - Spike in packet loss or latency → restart affected components or reduce non-critical traffic.
 - Sudden drop in traffic flow or connected devices → assume failure and initiate reconnection or alert.
 
@@ -83,21 +84,10 @@ The system can detect abnormal or degraded performance patterns and attempt corr
 Basic anomaly detection is implemented to simulate **intrusion detection** and mitigate risks.
 
 **Example**:
-- Suspicious activity detected (`true` or `high` on `network/suspicious_activity`) → system may simulate firewall updates, temporary connection blocks, or send notifications to the administrator group.
 
-Future work may integrate more advanced ML-based threat detection systems.
+- Suspicious activity detected (`true` or `high` on `network/suspicious_activity`) → system may simulate firewall updates, temporary connection blocks, or send notifications to the administrator group.
 
 ---
 
-## Pre-requisites
-
-- Docker
-- Git
-- Open ports for Mosquitto, InfluxDB, PHP, Node.js
-
-## Installation
-
-```bash
-git clone https://github.com/itsmealessandro/Autonomous-Network-Management.git
-cd Autonomous-Network-Management
-docker compose up
+## Environment simulation
+All the decision taken by the system are simulated by the actuators on a JSON file that simulates the environment.
