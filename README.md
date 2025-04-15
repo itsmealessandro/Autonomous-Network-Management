@@ -28,6 +28,7 @@ The system ensures that the network remains healthy, responsive, and protected t
 - **REST-API**: Analyzer (analyzes incoming metrics)
 - **REST-API-2**: Planner (generates action plans)
 - **InfluxDB**: Knowledge component, used as a time series database
+- **NodeRed**: Used to send data from sensors to InfluxDB
 
 ## Simulated Network Sensors
 
