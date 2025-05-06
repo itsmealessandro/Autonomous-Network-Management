@@ -25,9 +25,10 @@ The system ensures that the network remains healthy, responsive, and protected t
 - **Docker**: orchestration of containers
 - **Mosquitto**: MQTT broker for sensor/actuator communication
 - **OSGi (Equinox)**: modular simulation of sensors and actuators as bundles
-- **PHP**: Analyzer (analyzes incoming metrics)
-- **Node.js**: Planner (generates action plans)
+- **Server-1**: Analyzer (analyzes incoming metrics)
+- **Server-2**: Planner (generates action plans)
 - **InfluxDB**: Knowledge component, used as a time series database
+- **NodeRed**: Used to send data from sensors to InfluxDB
 
 ## Simulated Network Sensors
 
