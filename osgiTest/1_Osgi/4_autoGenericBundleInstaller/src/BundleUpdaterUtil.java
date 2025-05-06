@@ -40,24 +40,29 @@ public class BundleUpdaterUtil {
    * return a list of jar files in the directory
    */
   public ArrayList<String> getJarsFromLocation(String location) {
-    // BUG: debug
-    try {
-      FileWriter fWriter = new FileWriter("debug.txt");
-      fWriter.write("the loc is: " + location);
-      fWriter.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    System.out.println("location is: " + location);
-    // end debug
+    /*
+     * BUG: debug
+     * try {
+     * FileWriter fWriter = new FileWriter("debug.txt");
+     * fWriter.write("the loc is: " + location);
+     * fWriter.close();
+     * } catch (IOException e) {
+     * e.printStackTrace();
+     * }
+     * System.out.println("location is: " + location);
+     * 
+     * end debug
+     */
     ArrayList<String> fileLocations = new ArrayList<String>();
     File dir = new File(location);
 
-    /* debug */
-    System.out.println("Controllo directory: " + location);
-    System.out.println("exists: " + dir.exists());
-    System.out.println("isDirectory: " + dir.isDirectory());
-    System.out.println("canRead: " + dir.canRead());
+    /*
+     * debug
+     * System.out.println("Controllo directory: " + location);
+     * System.out.println("exists: " + dir.exists());
+     * System.out.println("isDirectory: " + dir.isDirectory());
+     * System.out.println("canRead: " + dir.canRead());
+     */
 
     String[] jarFiles = dir.list(new FilenameFilter() {
 
