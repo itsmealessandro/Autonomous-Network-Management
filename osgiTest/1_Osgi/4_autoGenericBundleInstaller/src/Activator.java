@@ -9,7 +9,7 @@ import org.osgi.framework.BundleException;
 public class Activator implements BundleActivator {
 
   protected static long INTERVAL = 5000;
-  protected static String FOLDER = "/home/alessandro/Desktop/Università/magistrale/1_anno/as/autonomous-system/osgiTest/1_Osgi/4_autoGenericBundleInstaller/temp";
+  protected static String FOLDER = "/home/alessandro/Desktop/Università/magistrale/1_anno/as/Autonomous-Network-Management/osgiTest/1_Osgi/4_autoGenericBundleInstaller/temp";
   private static BundleContext context;
   private static BundleUpdaterUtil bundleUpdaterUtil;
   private final Thread thread = new Thread(new BundleUpdater());
