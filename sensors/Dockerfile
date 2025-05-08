@@ -1,14 +1,13 @@
-FROM python:3
+FROM ubuntu:latest
+
+RUN apt update && \
+    apt install -y default-jdk
 
 WORKDIR .
 
 COPY ./ ./
 
-RUN chmod +x entrypoint.sh
-
-RUN pip install paho-mqtt
-
-RUN python -c "import paho.mqtt.client; print('paho-mqtt is installed')"
-
-CMD ["./entrypoint.sh"]
+# TODO:
+RUN chmod +x setup.sh
+CMD ["./setup.sh"]
 

@@ -1,0 +1,6 @@
+Bundle-ManifestVersion: 2
+Bundle-Name: Test OSGi Bundle 2
+Bundle-SymbolicName: test.bundle3
+Bundle-Version: 1.0.0
+Bundle-Activator: testOsgi3
+Import-Package: org.osgi.framework

@@ -19,7 +19,7 @@ services:
   # sensors -----------------------------------
   # --------------------------------------------
   sensors:
-    container_name: sensCont
+    container_name: sensContNet
     hostname: sensHost
     build: ./sensors/
     volumes:
@@ -32,22 +32,23 @@ services:
   # --------------------------------------------
   # actuators -----------------------------------
   # --------------------------------------------
-  actuators:
-    container_name: actCont
-    hostname: actHost
-    build: ./actuators/
-    volumes:
-      - ./simulated_env:/simulated_env
+#  actuators:
+#    container_name: actCont
+#    hostname: actHost
+#    build: ./actuators/
+#    volumes:
+#      - ./simulated_env:/simulated_env
 
-  analysis:
-    container_name: analysisCont
-    hostname: analysisHost
-    build: ./analysis/
 
-  planner:
-    container_name: plannerCont
-    hostname: plannerHost
-    build: ./planner/
+#  analysis:
+#    container_name: analysisCont
+#    hostname: analysisHost
+#    build: ./analysis/
+#
+#  planner:
+#    container_name: plannerCont
+#    hostname: plannerHost
+#    build: ./planner/
 
 networks:
   mqtt:
