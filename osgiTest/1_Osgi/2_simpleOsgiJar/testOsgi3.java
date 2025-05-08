@@ -13,7 +13,7 @@ public class testOsgi3 implements BundleActivator, Runnable {
 
   @Override
   public void stop(BundleContext context) {
-    System.out.println("Bundle is stopping.");
+    System.out.println("Bundle is stopping." + this.getClass().getName());
   }
 
   @Override
@@ -22,7 +22,7 @@ public class testOsgi3 implements BundleActivator, Runnable {
       try {
         Thread.sleep(5000);
 
-        System.out.println("i'm running");
+        System.out.println("I'm running, I'm test 3");
       } catch (InterruptedException e) {
         System.out.println("something exploded");
       }
