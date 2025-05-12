@@ -57,7 +57,7 @@ public class BundleUpdaterUtil {
     File dir = new File(location);
 
     /*
-     * debug
+     * 
      * System.out.println("Controllo directory: " + location);
      * System.out.println("exists: " + dir.exists());
      * System.out.println("isDirectory: " + dir.isDirectory());
