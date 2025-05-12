@@ -9,7 +9,8 @@ import org.osgi.framework.BundleException;
 public class Activator implements BundleActivator {
 
   protected static long INTERVAL = 5000;
-  protected static String FOLDER = "/home/alessandro/Desktop/Università/magistrale/1_anno/as/Autonomous-Network-Management/osgiTest/1_Osgi/4_autoGenericBundleInstaller/jar2install";
+  // NOTE: This should change based on .env
+  protected static String FOLDER = "/app/4_autoGenericBundleInstaller/jar2install";
   private static BundleContext context;
   private static BundleUpdaterUtil bundleUpdaterUtil;
   private final Thread thread = new Thread(new BundleUpdater());

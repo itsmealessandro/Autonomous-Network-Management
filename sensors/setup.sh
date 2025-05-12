@@ -1,15 +1,18 @@
 #!/bin/bash
 
-cd ./app/
-
 echo "hello from setup.sh"
 
-i=0
-while [ $i -le 5 ]; do
-  sleep 1
+cd ./app/4_autoGenericBundleInstaller/osgiJars/
 
-  ((i++))
+echo "i'm in: $(pwd)"
+echo "----------------------------"
 
-  echo "banana"
+ls -la
+echo "----------------------------"
 
-done
+chmod +x org.eclipse.equinox.console_1.4.800.v20240513-1104.jar
+
+ls -la
+echo "----------------------------"
+
+java -jar org.eclipse.osgi_3.21.0.v20240717-2103.jar -console

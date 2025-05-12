@@ -7,7 +7,7 @@ public class testOsgi3 implements BundleActivator, Runnable {
 
   @Override
   public void start(BundleContext bc) {
-    System.out.println("Bundle has started, I'm alive 2");
+    System.out.println("Bundle has started, I'm test 3");
     thread.start();
   }
 
