@@ -1,0 +1,6 @@
+.env
+
+# projects
+.settings/
+.project
+target/*
