@@ -12,7 +12,7 @@ public class Activator implements BundleActivator {
   // NOTE: This should change based on .env
   protected static String FOLDER = "/app/4_autoGenericBundleInstaller/jar2install";
   private static BundleContext context;
-  private static BundleUpdaterUtilLocal bundleUpdaterUtilLcoal;
+  private static BundleUpdaterUtil bundleUpdaterUtil;
   private final Thread thread = new Thread(new BundleUpdater());
 
   /*

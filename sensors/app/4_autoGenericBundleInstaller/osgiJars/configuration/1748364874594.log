@@ -1,0 +1,9 @@
+!SESSION 2025-05-27 18:54:34.532 -----------------------------------------------
+eclipse.buildId=unknown
+java.version=21.0.2
+java.vendor=Oracle Corporation
+BootLoader constants: OS=linux, ARCH=x86_64, WS=gtk, NL=en_US
+Command-line arguments:  -console
+
+!ENTRY org.eclipse.osgi 4 0 2025-05-27 18:54:34.829
+!MESSAGE Bundle file:actLocal.jar not found.
