@@ -1,1 +1,1 @@
-the loc is: /home/alessandro/Desktop/Università/magistrale/1_anno/as/Autonomous-Network-Management/osgiTest/1_Osgi/4_autoGenericBundleInstaller/temp
+the loc is: ../jar2installLocal
