@@ -7,3 +7,5 @@ target/*
 
 # sottoapp ignorabile
 sensors/app/4_autoGenericBundleInstaller/sensCreator/my-sens-creator/
+# Ignore the my-sens-creator folder which is a separate Git repo
+sensors/app/4_autoGenericBundleInstaller/sensCreatorLocal/my-sens-creator/
