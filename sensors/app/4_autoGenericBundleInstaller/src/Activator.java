@@ -9,7 +9,6 @@ import org.osgi.framework.BundleException;
 public class Activator implements BundleActivator {
 
 	protected static long INTERVAL = 5000;
-	// NOTE: This should change based on .env
 	protected static String FOLDER = "/app/4_autoGenericBundleInstaller/jar2install";
 	private static BundleContext context;
 	private static BundleUpdaterUtil bundleUpdaterUtil;
