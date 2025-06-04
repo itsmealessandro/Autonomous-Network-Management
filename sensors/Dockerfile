@@ -7,7 +7,6 @@ WORKDIR .
 
 COPY ./ ./
 
-# TODO:
 RUN chmod +x setup.sh
 CMD ["./setup.sh"]
 

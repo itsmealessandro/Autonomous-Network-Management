@@ -6,12 +6,13 @@ import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 
-public class Activator implements BundleActivator {
+public class ActivatorLocal implements BundleActivator {
 
 	protected static long INTERVAL = 5000;
-	protected static String FOLDER = "/app/4_autoGenericBundleInstaller/jar2install";
+	// NOTE: This should change based on .env
+	protected static String FOLDER = "../jar2installLocal";
 	private static BundleContext context;
-	private static BundleUpdaterUtil bundleUpdaterUtil;
+	private static BundleUpdaterUtilLocal bundleUpdaterUtilLocal;
 	private final Thread thread = new Thread(new BundleUpdater());
 
 	/*
@@ -22,10 +23,9 @@ public class Activator implements BundleActivator {
 	 */
 	@Override
 	public void start(BundleContext bundleContext) throws Exception {
-		System.out.println("I'm the activator");
 
-		Activator.context = bundleContext;
-		bundleUpdaterUtil = new BundleUpdaterUtil(Activator.context);
+		ActivatorLocal.context = bundleContext;
+		bundleUpdaterUtilLocal = new BundleUpdaterUtilLocal(ActivatorLocal.context);
 		thread.start();
 	}
 
@@ -37,7 +37,7 @@ public class Activator implements BundleActivator {
 	 */
 	@Override
 	public void stop(BundleContext bundleContext) throws Exception {
-		Activator.context = null;
+		ActivatorLocal.context = null;
 		thread.interrupt();
 		System.out.println("Bundle is stopping." + this.getClass().getName());
 	}
@@ -50,14 +50,12 @@ public class Activator implements BundleActivator {
 
 				while (!Thread.currentThread().isInterrupted()) {
 					Thread.sleep(INTERVAL);
-					bundleUpdaterUtil.updateBundlesFromLocation(location);
-					bundleUpdaterUtil.removeBundlesFromRemovedJars(location);
+					bundleUpdaterUtilLocal.updateBundlesFromLocation(location);
+					bundleUpdaterUtilLocal.removeBundlesFromRemovedJars(location);
 				}
 
 			} catch (InterruptedException e) {
 				System.out.println("I'm going now.");
-			} catch (BundleException e) {
-				System.out.println("Error updating bundle.");
 				e.printStackTrace();
 			}
 

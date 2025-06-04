@@ -56,13 +56,10 @@ public class BundleUpdaterUtil {
     ArrayList<String> fileLocations = new ArrayList<String>();
     File dir = new File(location);
 
-    /*
-     * 
-     * System.out.println("Controllo directory: " + location);
-     * System.out.println("exists: " + dir.exists());
-     * System.out.println("isDirectory: " + dir.isDirectory());
-     * System.out.println("canRead: " + dir.canRead());
-     */
+    // System.out.println("Controllo directory: " + location);
+    // System.out.println("exists: " + dir.exists());
+    // System.out.println("isDirectory: " + dir.isDirectory());
+    // System.out.println("canRead: " + dir.canRead());
 
     String[] jarFiles = dir.list(new FilenameFilter() {
 

@@ -1,0 +1,6 @@
+Bundle-ManifestVersion: 2
+Bundle-Version: 1.0.0
+Bundle-SymbolicName: activatorLocal
+Import-Package: org.osgi.framework
+Bundle-Name: The Activator Local
+Bundle-Activator: ActivatorLocal
