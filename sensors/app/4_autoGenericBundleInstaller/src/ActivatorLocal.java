@@ -8,57 +8,57 @@ import org.osgi.framework.BundleException;
 
 public class ActivatorLocal implements BundleActivator {
 
-  protected static long INTERVAL = 5000;
-  // NOTE: This should change based on .env
-  protected static String FOLDER = "../jar2installLocal";
-  private static BundleContext context;
-  private static BundleUpdaterUtilLocal bundleUpdaterUtilLocal;
-  private final Thread thread = new Thread(new BundleUpdater());
+	protected static long INTERVAL = 5000;
+	// NOTE: This should change based on .env
+	protected static String FOLDER = "../jar2installLocal";
+	private static BundleContext context;
+	private static BundleUpdaterUtilLocal bundleUpdaterUtilLocal;
+	private final Thread thread = new Thread(new BundleUpdater());
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
-   */
-  @Override
-  public void start(BundleContext bundleContext) throws Exception {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
+	 */
+	@Override
+	public void start(BundleContext bundleContext) throws Exception {
 
-    ActivatorLocal.context = bundleContext;
-    bundleUpdaterUtilLocal = new BundleUpdaterUtilLocal(ActivatorLocal.context);
-    thread.start();
-  }
+		ActivatorLocal.context = bundleContext;
+		bundleUpdaterUtilLocal = new BundleUpdaterUtilLocal(ActivatorLocal.context);
+		thread.start();
+	}
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
-   */
-  @Override
-  public void stop(BundleContext bundleContext) throws Exception {
-    ActivatorLocal.context = null;
-    thread.interrupt();
-    System.out.println("Bundle is stopping." + this.getClass().getName());
-  }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
+	 */
+	@Override
+	public void stop(BundleContext bundleContext) throws Exception {
+		ActivatorLocal.context = null;
+		thread.interrupt();
+		System.out.println("Bundle is stopping." + this.getClass().getName());
+	}
 
-  private class BundleUpdater implements Runnable {
+	private class BundleUpdater implements Runnable {
 
-    public void run() {
-      try {
-        String location = FOLDER;
+		public void run() {
+			try {
+				String location = FOLDER;
 
-        while (!Thread.currentThread().isInterrupted()) {
-          Thread.sleep(INTERVAL);
-          bundleUpdaterUtilLocal.updateBundlesFromLocation(location);
-          bundleUpdaterUtilLocal.removeBundlesFromRemovedJars(location);
-        }
+				while (!Thread.currentThread().isInterrupted()) {
+					Thread.sleep(INTERVAL);
+					bundleUpdaterUtilLocal.updateBundlesFromLocation(location);
+					bundleUpdaterUtilLocal.removeBundlesFromRemovedJars(location);
+				}
 
-      } catch (InterruptedException e) {
-        System.out.println("I'm going now.");
-        e.printStackTrace();
-      }
+			} catch (InterruptedException e) {
+				System.out.println("I'm going now.");
+				e.printStackTrace();
+			}
 
-    }
-  }
+		}
+	}
 }
