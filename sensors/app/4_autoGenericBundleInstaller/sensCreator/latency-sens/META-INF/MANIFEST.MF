@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Created-By: Maven JAR Plugin 3.3.0
+Build-Jdk-Spec: 21
+Bundle-ManifestVersion: 2
+Bundle-Name: latencySens
+Bundle-SymbolicName: com.sensCreator.latencySens
+Bundle-Version: 1.0.0
+Bundle-Activator: com.sensCreator.app.Sensor
+Import-Package: 
+ org.osgi.framework,
+ org.eclipse.paho.client.mqttv3,
+ javax.net
+Export-Package: com.sensCreator.app

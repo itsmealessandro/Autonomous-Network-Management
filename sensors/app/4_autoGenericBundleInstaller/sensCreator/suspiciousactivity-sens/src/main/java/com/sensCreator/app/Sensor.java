@@ -48,9 +48,9 @@ public class Sensor implements BundleActivator, Runnable {
 	@Override
 	public void run() {
 
-		System.out.println("I'm running, I'm bandwith sensor ...");
-		final String topicName = "Network/bandwidth_usage/value";
-		final String clientId = "1";
+		System.out.println("I'm running, I'm suspicious_activity sensor ...");
+		final String topicName = "Network/suspicious_activity/value";
+		final String clientId = "5";
 		System.out.println("topic:" + topicName);
 		System.out.println("clientId:" + clientId);
 
@@ -102,7 +102,7 @@ public class Sensor implements BundleActivator, Runnable {
 				// Navigazione nel JSON
 				JsonNode room = rootNode.get(splittedTopic[1]);
 
-				double value = room.get(splittedTopic[2]).asDouble();
+				int value = room.get(splittedTopic[2]).asInt();
 
 				System.out.println("---------------- env data begin --------------");
 

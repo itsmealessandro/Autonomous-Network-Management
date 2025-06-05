@@ -48,9 +48,9 @@ public class Sensor implements BundleActivator, Runnable {
 	@Override
 	public void run() {
 
-		System.out.println("I'm running, I'm bandwith sensor ...");
-		final String topicName = "Network/bandwidth_usage/value";
-		final String clientId = "1";
+		System.out.println("I'm running, I'm packet_loss sensor ...");
+		final String topicName = "Network/packet_loss/value";
+		final String clientId = "4";
 		System.out.println("topic:" + topicName);
 		System.out.println("clientId:" + clientId);
 
