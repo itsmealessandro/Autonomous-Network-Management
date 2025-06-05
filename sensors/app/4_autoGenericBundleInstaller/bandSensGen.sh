@@ -1,19 +1,19 @@
 echo "-------------------"
-echo "generating sensor"
+echo "generating sensor bandwith"
 
 echo "generating jar ..."
 
-cd ./sensCreator/my-sens-creator/
+cd ./sensCreator/bandwidth-sens/
 mvn clean verify
 cd ../../
 
 echo "removing old jar ..."
 
-rm ./jar2install/my_sens-1.0-SNAPSHOT.jar
+rm ./jar2install/bandwith-sens-1.jar
 
 echo "moving jar"
 
-cp -r "./sensCreator/my-sens-creator/target/my_sens-1.0-SNAPSHOT.jar" "./jar2install/"
+cp -r "./sensCreator/bandwidth-sens/target/bandwith-sens-1.jar" "./jar2install/"
 
 echo "jar moved in jar2install:"
 
