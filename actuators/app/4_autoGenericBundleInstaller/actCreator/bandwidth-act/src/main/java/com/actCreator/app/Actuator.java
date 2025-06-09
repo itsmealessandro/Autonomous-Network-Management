@@ -12,6 +12,8 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleActivator;
 
+import java.util.HashSet;
+
 public class Actuator implements BundleActivator, Runnable {
 
   // NOTE: usefull 4 debug
@@ -27,6 +29,7 @@ public class Actuator implements BundleActivator, Runnable {
 
   final String debugInfo = ANSI_WHITE + "[INFO]: " + ANSI_RESET;
 
+  HashSet<String> commands = new HashSet();
 
 
   // MQTT 
@@ -59,9 +62,17 @@ public String toString() {
            "}";
 }
 
+private void setupCommands(){
+  this.commands.add("INCREASE");
+  this.commands.add("DECREASE");
+}
+
   @Override
   public void start(BundleContext ctx){
-    System.out.println(debugInfo +"Hi I'm am Actuator and I've just STARED ");
+    System.out.println(debugInfo +"Hi I'm am Actuator and I've just STARED " +ANSI_RESET);
+    System.out.println(debugInfo + "Setup commands" + ANSI_RESET);
+    setupCommands();
+    System.out.println(debugInfo + "command list: " + this.commands+ANSI_RESET);
 
 		thread.start(); // this will launch run method
 
@@ -96,9 +107,6 @@ public String toString() {
           System.out.println("------------------------------------------------------------");
 
           //TODO: 
-          // 1- listen to the specific actuator topic
-          // 2- when a new message arrives, check it and print it.
-          // 3- define possible commands that can arrive via that message
           // 4- When a specific commoands arrives the actuator has different behaviors based on that command
           // 5- if command:"INCREASE" then get the specific value of the JSON env file 
           // of this specific actuator and increase it by an arbitrary value, write it on the file.
@@ -114,7 +122,26 @@ public String toString() {
 
               @Override
               public void messageArrived(String topic, MqttMessage message) {
-                  System.out.println(ANSI_WHITE +"Message Received:" + new String(message.getPayload()) + ANSI_RESET);
+                String msgText = new String(message.getPayload());
+                  System.out.println(ANSI_WHITE +"Message Received:" +  msgText + ANSI_RESET);
+
+                  if(commands.contains(msgText) == false){
+                    System.out.println(ANSI_RED + "command: [" + msgText +  "] not recognized" + ANSI_RESET);
+                    return;
+                  }
+
+                  System.out.println(ANSI_GREEN + "command: [" + msgText + "] recognized" + ANSI_RESET);
+
+                  String [] commandList = commands.toArray(new String[0]);
+
+                  if(msgText.equals(commandList[0])){ // INCREASE
+                    increaseCommand();
+                  }else if(msgText.equals(commandList[1])){ // DECREASE
+                    decreaseCommand();
+                  }else{
+                    System.out.println(ANSI_RED+ msgText +"NOT in command list"+ ANSI_RESET);
+                  }
+
               }
 
               @Override
@@ -134,5 +161,23 @@ public String toString() {
 
 
   }
+
+ /*
+  * return 0: OK
+  * return 1: NOT OK
+  * */
+ private int increaseCommand(){
+   System.out.println(debugInfo+"INCREASING ...");
+   return 0; // OK
+ }
+
+ /*
+  * return 0: OK
+  * return 1: NOT OK
+  * */
+ private int decreaseCommand(){
+   System.out.println(debugInfo+"DECREASING ...");
+   return 0; // OK
+ }
 
 }
