@@ -18,16 +18,16 @@ services:
   # --------------------------------------------
   # sensors -----------------------------------
   # --------------------------------------------
-  # sensors:
-  #   container_name: sensContNet
-  #   hostname: sensHost
-  #   build: ./sensors/
-  #   volumes:
-  #     - ./simulated_env:/simulated_env
-  #   depends_on:
-  #     - broker
-  #   networks:
-  #     - mqtt
+  sensors:
+    container_name: sensContNet
+    hostname: sensHost
+    build: ./sensors/
+    volumes:
+      - ./simulated_env:/simulated_env
+    depends_on:
+      - broker
+    networks:
+      - mqtt
 
   # --------------------------------------------
   # actuators -----------------------------------
