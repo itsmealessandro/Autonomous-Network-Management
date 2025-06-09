@@ -13,6 +13,9 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleActivator;
 
 import java.util.HashSet;
+import java.util.Map;
+import java.nio.file.Paths;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Actuator implements BundleActivator, Runnable {
 
@@ -107,7 +110,6 @@ private void setupCommands(){
           System.out.println("------------------------------------------------------------");
 
           //TODO: 
-          // 4- When a specific commoands arrives the actuator has different behaviors based on that command
           // 5- if command:"INCREASE" then get the specific value of the JSON env file 
           // of this specific actuator and increase it by an arbitrary value, write it on the file.
           // print the change done on console.
@@ -165,9 +167,28 @@ private void setupCommands(){
  /*
   * return 0: OK
   * return 1: NOT OK
+  * bandwidth will increase so the bandwidth_usage will decrease 
   * */
  private int increaseCommand(){
    System.out.println(debugInfo+"INCREASING ...");
+
+// NOTE: JSON stuff
+try {
+    // create object mapper instance
+    ObjectMapper mapper = new ObjectMapper();
+
+    // convert JSON file to map
+    Map<String, String> map = mapper.readValue(Paths.get(ENV_FILE_PATH).toFile(), Map.class);
+
+    // print map entries
+    for (Map.Entry<?, ?> entry : map.entrySet()) {
+        System.out.println(entry.getKey() + "=" + entry.getValue());
+    }
+
+} catch (Exception ex) {
+    ex.printStackTrace();
+}
+
    return 0; // OK
  }
 
