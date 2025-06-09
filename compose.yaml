@@ -38,6 +38,8 @@ services:
     build: ./actuators/
     volumes:
       - ./simulated_env:/simulated_env
+    networks:
+      - mqtt
 
 
 #  analysis:
