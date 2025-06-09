@@ -11,7 +11,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleActivator;
 
 public class Actuator implements BundleActivator, Runnable {
-final String ANSI_RESET = "\u001B[0m";
+  final String ANSI_RESET = "\u001B[0m";
 	final String ANSI_BLACK = "\u001B[30m";
 	final String ANSI_RED = "\u001B[31m"; // important operation
 	final String ANSI_GREEN = "\u001B[32m"; // good operation result
@@ -21,11 +21,13 @@ final String ANSI_RESET = "\u001B[0m";
 	final String ANSI_CYAN = "\u001B[36m";
 	final String ANSI_WHITE = "\u001B[37m";
 
+  final String debugInfo = ANSI_WHITE + "[INFO]: " + ANSI_RESET;
+
 	private final Thread thread = new Thread(this);
 
   @Override
   public void start(BundleContext ctx){
-    System.out.println("Hi I'm am Actuator and I've just STARED ");
+    System.out.println(debugInfo +"Hi I'm am Actuator and I've just STARED ");
 
 		thread.start(); // this will launch run method
 
@@ -33,22 +35,15 @@ final String ANSI_RESET = "\u001B[0m";
 
   @Override
   public void stop(BundleContext ctx){
-    System.out.println("Hi I'm am Actuator and I've just STOPPPED ");
+    System.out.println(debugInfo +"Hi I'm am Actuator and I've just STOPPPED ");
 
   }
 
   @Override 
   public void run(){
-    System.out.println("thread activated, I'm an Actuator, I'm running");
-    for (int i = 0; i < 5; i++) {
-      try {
-      java.lang.Thread.sleep(500);
-      System.out.println("hello:" + i);
-      } catch (InterruptedException e) {
-        System.err.println("interr ex");
-      }
-    }
-System.out.println("I'm running, I'm bandwith actuator ...");
+    System.out.println(debugInfo + "thread activated, I'm an Actuator, I'm running");
+
+System.out.println(debugInfo + "I'm running, I'm bandwith actuator ...");
 		final String topicName = "Network/bandwidth_usage/value";
 		final String clientId = "1";
 		System.out.println("topic:" + topicName);
@@ -61,7 +56,7 @@ System.out.println("I'm running, I'm bandwith actuator ...");
 
 		boolean active = true;
 
-		System.out.println(ANSI_GREEN + "Dynamic sensor activated" + topicName);
+		// System.out.println(ANSI_GREEN + "Dynamic sensor activated" + topicName);
 
     // NOTE: enstablishing MQTT Connection
     try {
@@ -70,11 +65,20 @@ System.out.println("I'm running, I'm bandwith actuator ...");
           MqttConnectOptions connOpts = new MqttConnectOptions();
           connOpts.setCleanSession(true);
           System.out.println("------------------------------------------------------------");
-          System.out.println("Connecting to broker: " + broker);
+          System.out.println(debugInfo + "Connecting to broker: " + broker);
 
           sampleClient.connect(connOpts);
-          System.out.println("Connected");
+          System.out.println(ANSI_GREEN + "Connected" + ANSI_RESET);
           System.out.println("------------------------------------------------------------");
+
+          //TODO: 
+          // 1- listen to the specific actuator topic
+          // 2- when a new message arrives, check it and print it.
+          // 3- define possible commands that can arrive via that message
+          // 4- When a specific commoands arrives the actuator has different behaviors based on that command
+          // 5- if command:"INCREASE" then get the specific value of the JSON env file 
+          // of this specific actuator and increase it by an arbitrary value, write it on the file.
+          // print the change done on console.
 
     } catch (MqttException e) {
       e.printStackTrace();
