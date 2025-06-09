@@ -186,12 +186,12 @@ try {
     // Parsing JSON
     Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {});
 
-    // Print
-    for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
-        System.out.println(entry.getKey() + "=" + entry.getValue());
-    }
+    // // Print
+    // for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
+    //     System.out.println(entry.getKey() + "=" + entry.getValue());
+    // }
 
-    // Modifica il valore della chiave "bandwidth_usage"
+    // Update value
     if (map.containsKey("bandwidth_usage")) {
         Map<String, Object> innerMap = map.get("bandwidth_usage");
 
@@ -200,31 +200,36 @@ try {
         if (valueObj instanceof Number) {
             double currentValue = ((Number) valueObj).doubleValue();
 
-            if((currentValue+10)>MAX_VAL) return 1;
+            if((currentValue-10)<MIN_VAL){
+              System.err.println(ANSI_RED+ "MIN_VAL Exceeded");
+              return 1;
+            } 
 
-            newValue= currentValue + 10.0;
+            newValue= currentValue - 10.0;
             innerMap.put("value", newValue);
         } else {
-            System.out.println("value is not a Number");
+            System.err.println(ANSI_RED+"value is not a Number");
             return 2;
         }
         innerMap.put("value", newValue);
     }
 
-    // Salva le modifiche nel file
+    // Write on file the updates
     mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
+    System.out.println(debugInfo+"Value updated");
 
     // NOTE: CHECK CHANGE
+    //
     // create object mapper instance
-    ObjectMapper mapper2 = new ObjectMapper();
-
-    // Parsing JSON
-    Map<String, Map<String, Object>> map2 = mapper2.readValue(file, new TypeReference<>() {});
-
-    // Print
-    for (Map.Entry<String, Map<String, Object>> entry : map2.entrySet()) {
-        System.out.println(entry.getKey() + "=" + entry.getValue());
-    }
+    // ObjectMapper mapper2 = new ObjectMapper();
+    //
+    // // Parsing JSON
+    // Map<String, Map<String, Object>> map2 = mapper2.readValue(file, new TypeReference<>() {});
+    //
+    // // Print
+    // for (Map.Entry<String, Map<String, Object>> entry : map2.entrySet()) {
+    //     System.out.println(entry.getKey() + "=" + entry.getValue());
+    // }
 
 
 
@@ -242,6 +247,68 @@ try {
   * */
  private int decreaseCommand(){
    System.out.println(debugInfo+"DECREASING ...");
+
+// NOTE: JSON stuff
+try {
+    // create object mapper instance
+    ObjectMapper mapper = new ObjectMapper();
+    File file = Paths.get(ENV_FILE_PATH).toFile();
+
+    // Parsing JSON
+    Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {});
+
+    // // Print
+    // for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
+    //     System.out.println(entry.getKey() + "=" + entry.getValue());
+    // }
+
+    // Update value
+    if (map.containsKey("bandwidth_usage")) {
+        Map<String, Object> innerMap = map.get("bandwidth_usage");
+
+        Object valueObj = innerMap.get("value");
+        double newValue=0;
+        if (valueObj instanceof Number) {
+            double currentValue = ((Number) valueObj).doubleValue();
+
+            if((currentValue+10)>MAX_VAL){
+              System.err.println(ANSI_RED+ "MAX_VAL Exceeded");
+              return 1;
+            } 
+
+            newValue= currentValue + 10.0;
+            innerMap.put("value", newValue);
+        } else {
+            System.err.println(ANSI_RED+"value is not a Number");
+            return 2;
+        }
+        innerMap.put("value", newValue);
+    }
+
+    // Write on file the updates
+    mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
+    System.out.println(debugInfo+"Value updated");
+
+    // NOTE: CHECK CHANGE
+    //
+    // create object mapper instance
+    // ObjectMapper mapper2 = new ObjectMapper();
+    //
+    // // Parsing JSON
+    // Map<String, Map<String, Object>> map2 = mapper2.readValue(file, new TypeReference<>() {});
+    //
+    // // Print
+    // for (Map.Entry<String, Map<String, Object>> entry : map2.entrySet()) {
+    //     System.out.println(entry.getKey() + "=" + entry.getValue());
+    // }
+
+
+
+} catch (Exception ex) {
+    ex.printStackTrace();
+    System.out.println("JSON BOOM");
+}
+
    return 0; // OK
  }
 
