@@ -8,6 +8,11 @@
 	<artifactId>bandwith-act</artifactId>
 	<version>1</version>
 
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.release>21</maven.compiler.release>
+	</properties>
+
 <packaging>bundle</packaging>
 
 	<name>bandwith-act</name>
@@ -53,7 +58,7 @@
 <plugin>
     <groupId>org.apache.felix</groupId>
     <artifactId>maven-bundle-plugin</artifactId>
-    <version>3.3.0</version>
+    <version>6.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <instructions>

@@ -15,7 +15,9 @@ import org.osgi.framework.BundleActivator;
 import java.util.HashSet;
 import java.util.Map;
 import java.nio.file.Paths;
+import java.io.File;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 public class Actuator implements BundleActivator, Runnable {
 
@@ -45,6 +47,8 @@ public class Actuator implements BundleActivator, Runnable {
   final String ENV_NODE = "bandwidth_usage";
   final String NODE_VALUE = "value";
 	final String BROKER = "tcp://broker:1883";
+  final double MAX_VAL= 100.0;
+  final double MIN_VAL= 0.0;
 
 	private final Thread thread = new Thread(this);
 
@@ -166,7 +170,8 @@ private void setupCommands(){
 
  /*
   * return 0: OK
-  * return 1: NOT OK
+  * return 1: can't increase
+  * return 2: NOT OK
   * bandwidth will increase so the bandwidth_usage will decrease 
   * */
  private int increaseCommand(){
@@ -176,17 +181,56 @@ private void setupCommands(){
 try {
     // create object mapper instance
     ObjectMapper mapper = new ObjectMapper();
+    File file = Paths.get(ENV_FILE_PATH).toFile();
 
-    // convert JSON file to map
-    Map<String, String> map = mapper.readValue(Paths.get(ENV_FILE_PATH).toFile(), Map.class);
+    // Parsing JSON
+    Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {});
 
-    // print map entries
-    for (Map.Entry<?, ?> entry : map.entrySet()) {
+    // Print
+    for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
         System.out.println(entry.getKey() + "=" + entry.getValue());
     }
 
+    // Modifica il valore della chiave "bandwidth_usage"
+    if (map.containsKey("bandwidth_usage")) {
+        Map<String, Object> innerMap = map.get("bandwidth_usage");
+
+        Object valueObj = innerMap.get("value");
+        double newValue=0;
+        if (valueObj instanceof Number) {
+            double currentValue = ((Number) valueObj).doubleValue();
+
+            if((currentValue+10)>MAX_VAL) return 1;
+
+            newValue= currentValue + 10.0;
+            innerMap.put("value", newValue);
+        } else {
+            System.out.println("value is not a Number");
+            return 2;
+        }
+        innerMap.put("value", newValue);
+    }
+
+    // Salva le modifiche nel file
+    mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
+
+    // NOTE: CHECK CHANGE
+    // create object mapper instance
+    ObjectMapper mapper2 = new ObjectMapper();
+
+    // Parsing JSON
+    Map<String, Map<String, Object>> map2 = mapper2.readValue(file, new TypeReference<>() {});
+
+    // Print
+    for (Map.Entry<String, Map<String, Object>> entry : map2.entrySet()) {
+        System.out.println(entry.getKey() + "=" + entry.getValue());
+    }
+
+
+
 } catch (Exception ex) {
     ex.printStackTrace();
+    System.out.println("JSON BOOM");
 }
 
    return 0; // OK
