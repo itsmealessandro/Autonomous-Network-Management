@@ -1,10 +1,13 @@
-FROM python:3
+FROM ubuntu:latest
+
+RUN apt update && \
+    apt install -y default-jdk
 
 WORKDIR .
 
-COPY ./act.py ./
+COPY ./ ./
 
-RUN pip install paho-mqtt
+RUN chmod +x setup.sh
 
-CMD ["python" ,"./act.py"]
+CMD ["./setup.sh"]
 

@@ -32,12 +32,14 @@ services:
   # --------------------------------------------
   # actuators -----------------------------------
   # --------------------------------------------
-#  actuators:
-#    container_name: actCont
-#    hostname: actHost
-#    build: ./actuators/
-#    volumes:
-#      - ./simulated_env:/simulated_env
+  actuators:
+    container_name: actCont
+    hostname: actHost
+    build: ./actuators/
+    volumes:
+      - ./simulated_env:/simulated_env
+    networks:
+      - mqtt
 
 
 #  analysis:

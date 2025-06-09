@@ -76,7 +76,7 @@ public class Sensor implements BundleActivator, Runnable {
 			Thread.sleep(2000);
 
 			while (active) {
-				System.out.println("---------------- sensor" + topicName +" running --------------");
+				// System.out.println("---------------- sensor" + topicName +" running --------------");
 
 				// NOTE: JSON
 
@@ -91,10 +91,10 @@ public class Sensor implements BundleActivator, Runnable {
 				}
 
 				String[] splittedTopic = topic.split("/");
-				System.out.println("this is the splitted topic") ;
-          for (String s: splittedTopic){
-            System.out.println(s);
-          }
+				// System.out.println("this is the splitted topic") ;
+				//       for (String s: splittedTopic){
+				//         System.out.println(s);
+				//       }
 
 				// Lettura del file JSON
 				JsonNode rootNode = objectMapper.readTree(jsonFile);
@@ -104,12 +104,12 @@ public class Sensor implements BundleActivator, Runnable {
 
 				double value = room.get(splittedTopic[2]).asDouble();
 
-				System.out.println("---------------- env data begin --------------");
-
-				System.out.println("data:" + splittedTopic[1]);
-				System.out.println("value:" + value);
-
-				System.out.println("---------------- env data end --------------");
+				// System.out.println("---------------- env data begin --------------");
+				//
+				// System.out.println("data:" + splittedTopic[1]);
+				// System.out.println("value:" + value);
+				//
+				// System.out.println("---------------- env data end --------------");
 
 				String content = null;
 				Random random = new Random();
