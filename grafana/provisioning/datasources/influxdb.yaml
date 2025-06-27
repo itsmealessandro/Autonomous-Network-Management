@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      httpMode: POST
+      organization: network-monitoring
+      defaultBucket: network-metrics
+      tlsAuth: false
+      version: Flux
+    secureJsonData:
+      token: my-super-secret-token
