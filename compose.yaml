@@ -52,12 +52,12 @@ services:
     volumes:
       - influx-data:/var/lib/influxdb2
     environment:
-      - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME=admin
-      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
-      - DOCKER_INFLUXDB_INIT_ORG=network-monitoring
-      - DOCKER_INFLUXDB_INIT_BUCKET=network-metrics
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-token
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: network-monitoring
+      DOCKER_INFLUXDB_INIT_BUCKET: network-metrics
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-token
     ports:
       - "8086:8086"
 
@@ -70,8 +70,8 @@ services:
     networks:
       - mqtt
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -89,12 +89,11 @@ services:
     networks:
       - mqtt
     environment:
-      - MQTT_BROKER=mosquitto-container
-      - INFLUX_URL=http://influxdb:8086
-      - INFLUX_TOKEN=my-super-secret-token
-      - INFLUX_ORG=network-monitoring
-      - INFLUX_BUCKET=network-metrics
-    
+      MQTT_BROKER: mosquitto-container
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: my-super-secret-token
+      INFLUX_ORG: network-monitoring
+      INFLUX_BUCKET: network-metrics
 
   # --------------------------------------------
   # Analyzer -----------------------------------
@@ -105,12 +104,15 @@ services:
     networks:
       - mqtt
     environment:
-      - MQTT_BROKER=mosquitto-container
-      - INFLUX_URL=http://influxdb:8086
-      - INFLUX_TOKEN=my-super-secret-token
-      - INFLUX_ORG=network-monitoring
-      - INFLUX_BUCKET=network-metrics
-  
+      MQTT_BROKER: mosquitto-container
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_ORG: network-monitoring
+      INFLUX_BUCKET: network-metrics  
+    volumes:
+      - ./path/locale/token:/app/influx_token
+
+    secrets:
+      - influx_token
 
   # --------------------------------------------
   # Planner -----------------------------------
@@ -121,7 +123,7 @@ services:
     networks:
       - mqtt
     environment:
-      - MQTT_BROKER=mosquitto-container
+      MQTT_BROKER: mosquitto-container
 
 
 networks:
@@ -133,3 +135,7 @@ volumes:
   simulated_env:
   influx-data:
   grafana-data:
+
+secrets:
+  influx_token:
+    file: ./analyzer/secrets/influx_token

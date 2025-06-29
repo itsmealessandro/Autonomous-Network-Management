@@ -7,8 +7,8 @@ datasources:
     url: http://influxdb:8086
     jsonData:
       httpMode: POST
-      organization: network-monitoring
-      defaultBucket: network-metrics
+      organization: network-monitoring   # usato da InfluxDB 2.x
+      defaultBucket: network-metrics    # bucket per i dati
       tlsAuth: false
       version: Flux
     secureJsonData:

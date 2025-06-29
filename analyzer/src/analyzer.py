@@ -1,116 +1,137 @@
 import os
 import json
 import time
-import paho.mqtt.client as mqtt
-from influxdb_client import InfluxDBClient
+import logging
+from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
-import numpy as np
+import paho.mqtt.client as mqtt
 
-# Configurazione
-MQTT_BROKER = os.getenv('MQTT_BROKER', 'mosquitto-container')
-MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
-INFLUX_URL = os.getenv('INFLUX_URL', 'http://influxdb:8086')
-INFLUX_TOKEN = os.getenv('INFLUX_TOKEN', 'my-super-secret-token')
-INFLUX_ORG = os.getenv('INFLUX_ORG', 'network-monitoring')
-INFLUX_BUCKET = os.getenv('INFLUX_BUCKET', 'network-metrics')
+# Configurazione logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
-# Soglie per l'analisi (personalizzabili)
-THRESHOLDS = {
-    'bandwidth_usage': {'warning': 70, 'critical': 90},
-    'latency': {'warning': 100, 'critical': 200},
-    'packet_loss': {'warning': 2, 'critical': 5},
-    'suspicious_activity': {'warning': 5, 'critical': 10}
+# ==================================================
+# Lettura del token da file
+TOKEN_FILE_PATH = os.getenv("INFLUX_TOKEN_FILE", "/run/secrets/influx_token")
+
+try:
+    with open(TOKEN_FILE_PATH, 'r') as f:
+        INFLUX_TOKEN = f.read().strip()
+        logger.info(f"Token InfluxDB letto da {TOKEN_FILE_PATH}")
+except Exception as e:
+    logger.error(f"Errore nella lettura del token da file: {e}")
+    exit(1)
+
+# Configurazione da variabili d'ambiente (con default)
+required_env_vars = {
+    'INFLUX_URL': os.getenv('INFLUX_URL', 'http://influxdb:8086'),
+    'INFLUX_ORG': os.getenv('INFLUX_ORG', 'network-monitoring'),
+    'INFLUX_BUCKET': os.getenv('INFLUX_BUCKET', 'network-metrics'),
+    'MQTT_BROKER': os.getenv('MQTT_BROKER', 'mosquitto-container'),
+    'MQTT_PORT': int(os.getenv('MQTT_PORT', 1883))
 }
 
-# Inizializza client InfluxDB
-influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
-query_api = influx_client.query_api()
+# Logging variabili chiave
+logger.info("=" * 50)
+logger.info("INFLUX_URL: %s", required_env_vars['INFLUX_URL'])
+logger.info("INFLUX_ORG: %s", required_env_vars['INFLUX_ORG'])
+logger.info("INFLUX_BUCKET: %s", required_env_vars['INFLUX_BUCKET'])
+logger.info("MQTT_BROKER: %s", required_env_vars['MQTT_BROKER'])
+logger.info("MQTT_PORT: %d", required_env_vars['MQTT_PORT'])
+logger.info("Lunghezza token: %d", len(INFLUX_TOKEN))
+logger.info("=" * 50)
 
-# Client MQTT
-mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+# Connessione a InfluxDB
+try:
+    influx_client = InfluxDBClient(
+        url=required_env_vars['INFLUX_URL'],
+        token=INFLUX_TOKEN,
+        org=required_env_vars['INFLUX_ORG'],
+        timeout=30_000,
+        enable_gzip=True
+    )
+    write_api = influx_client.write_api(write_options=SYNCHRONOUS)
+    logger.info("Connesso a InfluxDB")
+except Exception as e:
+    logger.error(f"Errore connessione InfluxDB: {str(e)}")
+    exit(1)
 
-def on_connect(client, userdata, flags, rc):
-    print(f"✅ Analyzer connected to MQTT broker")
-    client.subscribe("analysis/commands")
-    print("Subscribed to analysis/commands")
-
-def on_message(client, userdata, msg):
-    print(f"Received command: {msg.payload.decode()}")
-    if msg.topic == "analysis/commands":
-        handle_command(msg.payload.decode())
-
-def handle_command(command):
-    if command == "ANALYZE_NOW":
-        print("🚀 Triggering immediate analysis")
-        analyze_metrics()
-
-def analyze_metrics():
-    print("🔍 Starting analysis of network metrics...")
-    results = {}
-
-    for metric in THRESHOLDS.keys():
-        # Query per ottenere gli ultimi 5 minuti di dati
-        query = f'''from(bucket: "{INFLUX_BUCKET}")
-            |> range(start: -5m)
-            |> filter(fn: (r) => r._measurement == "{metric}")
-            |> keep(columns: ["_value", "_time"])
-            |> sort(columns: ["_time"], desc: false)'''
-
-        tables = query_api.query(query, org=INFLUX_ORG)
-        values = [row.get_value() for table in tables for row in table.records]
-
-        if not values:
-            continue
-
-        current_value = values[-1]
-        avg_value = np.mean(values) if len(values) > 0 else current_value
-        max_value = np.max(values) if len(values) > 0 else current_value
-
-        # Valutazione dello stato
-        status = "NORMAL"
-        if current_value > THRESHOLDS[metric]['critical']:
-            status = "CRITICAL"
-        elif current_value > THRESHOLDS[metric]['warning']:
-            status = "WARNING"
-
-        # Rilevamento anomalie
-        anomaly = False
-        if len(values) > 10:
-            std_dev = np.std(values)
-            if abs(current_value - avg_value) > 3 * std_dev:
-                anomaly = True
-
-        results[metric] = {
-            'current': round(current_value, 2),
-            'average': round(avg_value, 2),
-            'max': round(max_value, 2),
-            'status': status,
-            'anomaly': anomaly,
-            'timestamp': int(time.time())
-        }
-
-    # Pubblica risultati
-    if results:
-        payload = json.dumps(results)
-        mqtt_client.publish("analysis/results", payload)
-        print(f"📊 Published analysis results: {payload}")
+# Funzione di connessione MQTT
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        logger.info("Connesso al broker MQTT")
+        client.subscribe("sensors/#")
+        client.subscribe("actuators/#")
     else:
-        print("⚠️ No data available for analysis")
+        logger.error(f"Connessione fallita: {reason_code}")
 
-def main():
-    # Configura MQTT
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+# Parsing payload JSON o numerico
+def parse_payload(payload):
+    try:
+        data = json.loads(payload)
+        if isinstance(data, dict) and 'value' in data:
+            return float(data['value'])
+        if isinstance(data, dict):
+            for v in data.values():
+                if isinstance(v, (int, float)):
+                    return float(v)
+        return float(payload)
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning(f"Payload non valido: {payload} - {str(e)}")
+        return None
 
-    # Loop principale
-    mqtt_client.loop_start()
-    print("🚦 Analyzer started. Waiting for commands...")
+# Callback per ricezione messaggi MQTT
+def on_message(client, userdata, msg):
+    try:
+        value = parse_payload(msg.payload.decode('utf-8'))
+        if value is None:
+            return
 
-    # Analisi periodica (ogni 60 secondi)
-    while True:
-        analyze_metrics()
-        time.sleep(60)
+        metric = msg.topic.split('/')[-1]
+        source = msg.topic.split('/')[0]
 
+        point = Point("network_metrics") \
+            .tag("metric_type", metric) \
+            .tag("source", source) \
+            .field("value", value) \
+            .time(time.time_ns(), WritePrecision.NS)
+
+        write_api.write(
+            bucket=required_env_vars['INFLUX_BUCKET'],
+            record=point
+        )
+        logger.info(f"Metrica salvata: {metric} = {value}")
+
+    except Exception as e:
+        logger.error(f"Errore processamento messaggio: {str(e)}", exc_info=True)
+
+# Setup client MQTT
+def setup_mqtt():
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
+
+    try:
+        client.connect(
+            required_env_vars['MQTT_BROKER'],
+            required_env_vars['MQTT_PORT'],
+            keepalive=60
+        )
+        client.loop_forever(retry_first_connection=True)
+    except KeyboardInterrupt:
+        logger.info("Interruzione manuale")
+    except Exception as e:
+        logger.error(f"Errore MQTT: {str(e)}")
+    finally:
+        client.disconnect()
+        influx_client.close()
+
+# Main
 if __name__ == "__main__":
-    main()
+    logger.info("Avvio analyzer...")
+    setup_mqtt()

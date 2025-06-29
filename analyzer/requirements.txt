@@ -1,3 +1,2 @@
-paho-mqtt
 influxdb-client
-numpy
+paho-mqtt
