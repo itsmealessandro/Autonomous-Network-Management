@@ -1,4 +1,5 @@
 .env
+influx_token
 
 # projects
 .settings/

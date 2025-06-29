@@ -7,13 +7,13 @@ services:
       - .env
     container_name: mosquitto-container
     hostname: mosquittoName
-    image: eclipse-mosquitto
+    image: eclipse-mosquitto:2.0
     ports:
       - "${MOSQUITTO_PORT}:1883"
     networks:
       - mqtt
     volumes:
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   # --------------------------------------------
   # sensors -----------------------------------
@@ -41,16 +41,90 @@ services:
     networks:
       - mqtt
 
+  # --------------------------------------------
+  # InfluxDB -----------------------------------
+  # --------------------------------------------
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    networks:
+      - mqtt
+    volumes:
+      - influx-data:/var/lib/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: network-monitoring
+      DOCKER_INFLUXDB_INIT_BUCKET: network-metrics
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-token
+    ports:
+      - "8086:8086"
 
-#  analysis:
-#    container_name: analysisCont
-#    hostname: analysisHost
-#    build: ./analysis/
-#
-#  planner:
-#    container_name: plannerCont
-#    hostname: plannerHost
-#    build: ./planner/
+  # --------------------------------------------
+  # Grafana -----------------------------------
+  # --------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks:
+      - mqtt
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+
+  # --------------------------------------------
+  # Monitor -----------------------------------
+  # --------------------------------------------
+  monitor:
+    build: ./monitor
+    container_name: monitor
+    networks:
+      - mqtt
+    environment:
+      MQTT_BROKER: mosquitto-container
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: my-super-secret-token
+      INFLUX_ORG: network-monitoring
+      INFLUX_BUCKET: network-metrics
+
+  # --------------------------------------------
+  # Analyzer -----------------------------------
+  # --------------------------------------------
+  analyzer:
+    build: ./analyzer
+    container_name: analyzer
+    networks:
+      - mqtt
+    environment:
+      MQTT_BROKER: mosquitto-container
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_ORG: network-monitoring
+      INFLUX_BUCKET: network-metrics  
+    volumes:
+      - ./path/locale/token:/app/influx_token
+
+    secrets:
+      - influx_token
+
+  # --------------------------------------------
+  # Planner -----------------------------------
+  # --------------------------------------------
+  planner:
+    build: ./planner
+    container_name: planner
+    networks:
+      - mqtt
+    environment:
+      MQTT_BROKER: mosquitto-container
+
 
 networks:
   mqtt:
@@ -59,3 +133,9 @@ networks:
 volumes:
   mosquitto_data:
   simulated_env:
+  influx-data:
+  grafana-data:
+
+secrets:
+  influx_token:
+    file: ./analyzer/secrets/influx_token
