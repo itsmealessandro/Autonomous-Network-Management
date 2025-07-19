@@ -30,11 +30,36 @@ ACTIONS = {
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 def on_connect(client, userdata, flags, rc):
+    """
+    Callback when the planner connects to the MQTT broker.
+
+    Args:
+        client (Client): MQTT client instance
+        userdata (Any): User data
+        flags (dict): Connection flags
+        rc (int): Connection result code
+    """
     print(f"✅ Planner connected to MQTT broker")
     client.subscribe("analysis/results")
     print("Subscribed to analysis/results")
 
 def on_message(client, userdata, msg):
+    
+    """
+    Callback when the planner receives a message from the MQTT broker.
+
+    Args:
+        client (Client): MQTT client instance
+        userdata (Any): User data
+        msg (MqttMessage): Received MQTT message
+
+    Notes:
+        The planner is subscribed to the "analysis/results" topic, and this
+        callback is invoked when a message is published to that topic. The
+        message payload is expected to be a JSON string containing the
+        analysis results. The planner will then plan actions based on the
+        results.
+    """
     if msg.topic == "analysis/results":
         try:
             results = json.loads(msg.payload.decode())
@@ -44,6 +69,24 @@ def on_message(client, userdata, msg):
             print(f"⚠️ Error processing results: {str(e)}")
 
 def plan_actions(analysis_results):
+    """
+    Plan actions based on the given analysis results.
+
+    Args:
+        analysis_results (dict): Analysis results with metric names as keys and
+            dictionaries as values. Each dictionary should contain the
+            following keys:
+                - status (str): Status of the analysis (WARNING, CRITICAL, etc.)
+                - current (float): Current value of the metric
+
+    Returns:
+        None
+
+    Notes:
+        This function will plan actions based on the given analysis results and
+        publish them to the corresponding MQTT topics. The actions will be
+        logged to the console.
+    """
     planned_actions = []
 
     for metric, data in analysis_results.items():
@@ -77,6 +120,16 @@ def plan_actions(analysis_results):
 
 def main():
     # Configura MQTT
+    """
+    Main entry point of the planner. Configures the MQTT connection and starts
+    the loop to wait for analysis results.
+
+    Notes:
+        The planner is subscribed to the "analysis/results" topic, and when a
+        message is published to that topic, the on_message callback is invoked.
+        The planner will then plan actions based on the analysis results and
+        publish them to the corresponding MQTT topics.
+    """
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
     mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)

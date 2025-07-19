@@ -125,6 +125,23 @@ services:
     environment:
       MQTT_BROKER: mosquitto-container
 
+  # --------------------------------------------
+  # Backend -----------------------------------
+  # --------------------------------------------
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./config.json:/app/config.json
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - mosquitto
+      - influxdb
+
 
 networks:
   mqtt:
