@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public class Actuator implements BundleActivator, Runnable {
 
-  // NOTE: usefull 4 debug
+  // NOTE: useful for debug
   final String ANSI_RESET = "\u001B[0m";
   final String ANSI_BLACK = "\u001B[30m";
   final String ANSI_RED = "\u001B[31m"; // important operation
@@ -33,6 +33,14 @@ public class Actuator implements BundleActivator, Runnable {
 
   final String debugInfo = ANSI_WHITE + "[INFO]: " + ANSI_RESET;
 
+  // Use a HashSet to store valid command strings for quick lookup
+  HashSet<String> validCommands = new HashSet<>();
+
+  // Define commands using an enum
+  private enum COMMANDS {
+    BLOCK_IP // This command sets the suspicious_activity value to 0
+  }
+
   // MQTT
   final String CLIENT_ID = "act_suspicious_activity";
   final String GENERAL_TOPIC = "Network/suspicious_activity";
@@ -43,16 +51,19 @@ public class Actuator implements BundleActivator, Runnable {
   final String ENV_NODE = "suspicious_activity";
   final String NODE_VALUE = "value";
   final String BROKER = "tcp://broker:1883";
-  final double MAX_VAL = 5;
-  final double MIN_VAL = 0;
-  final String[] commands = { "IMPROVEMENT", "WORSENING" };
+
+  // MAX_VAL and MIN_VAL are less relevant now, as the command directly sets to 0.
+  // However, they can remain if they define the expected bounds of the value in
+  // general.
+  final double MAX_VAL = 5.0; // Changed to double for consistency
+  final double MIN_VAL = 0.0; // Changed to double for consistency
 
   private final Thread thread = new Thread(this);
 
   @Override
   public String toString() {
-    // Definisci la larghezza massima per i nomi dei campi per l'allineamento
-    int fieldNameWidth = 15; // Adatta questo valore se i tuoi nomi di campo sono più lunghi
+    // Define max width for field names for alignment
+    int fieldNameWidth = 15;
 
     return "ActuatorData {\n" +
         String.format("  %-" + fieldNameWidth + "s: '%s'\n", "CLIENT_ID", CLIENT_ID) +
@@ -65,31 +76,37 @@ public class Actuator implements BundleActivator, Runnable {
         "}";
   }
 
+  // Method to populate the validCommands HashSet from the enum
+  private void setupCommands() {
+    for (COMMANDS cmd : COMMANDS.values()) {
+      this.validCommands.add(cmd.name()); // Add the string name of each enum constant
+    }
+  }
+
   @Override
   public void start(BundleContext ctx) {
-    System.out.println(debugInfo + "Hi I'm am Actuator and I've just STARED " + ANSI_RESET);
-    System.out.println(debugInfo + "command list: " + this.commands + ANSI_RESET);
+    System.out.println(debugInfo + "Hi, I'm an Actuator for Suspicious Activity and I've just STARTED " + ANSI_RESET);
+    System.out.println(debugInfo + "Setting up commands..." + ANSI_RESET);
+    setupCommands(); // Call the setup method
+    System.out.println(debugInfo + "Command list: " + this.validCommands + ANSI_RESET);
 
-    thread.start(); // this will launch run method
-
+    thread.start(); // This will launch the run method
   }
 
   @Override
   public void stop(BundleContext ctx) {
-    System.out.println(debugInfo + "Hi I'm am Actuator and I've just STOPPPED ");
-
+    System.out.println(debugInfo + "Hi, I'm an Actuator for Suspicious Activity and I've just STOPPED ");
   }
 
   @Override
   public void run() {
-    System.out.println(debugInfo + "I'm running, I'm packet_loss actuator");
+    System.out.println(debugInfo + "I'm running, I'm the suspicious_activity actuator");
     System.out.println("------------------------------------------------------------");
     System.out.println(ANSI_WHITE + this + ANSI_RESET);
     System.out.println("------------------------------------------------------------");
 
-    // NOTE: enstablishing MQTT Connection
+    // Establish MQTT Connection
     try {
-
       int qos = 1;
       MemoryPersistence persistence = new MemoryPersistence();
       MqttClient client = new MqttClient(BROKER, CLIENT_ID, persistence);
@@ -102,161 +119,81 @@ public class Actuator implements BundleActivator, Runnable {
       System.out.println(ANSI_GREEN + "Connected" + ANSI_RESET);
       System.out.println("------------------------------------------------------------");
 
-      // Callback per ricevere i messaggi
+      // Callback to receive messages
       client.setCallback(new MqttCallback() {
         @Override
         public void connectionLost(Throwable cause) {
-          System.out.println(ANSI_RED + "Connection LOST" + ANSI_RESET + cause.getMessage());
+          System.out.println(ANSI_RED + "Connection LOST: " + ANSI_RESET + cause.getMessage());
         }
 
         @Override
         public void messageArrived(String topic, MqttMessage message) {
           String msgText = new String(message.getPayload());
-          System.out.println(ANSI_WHITE + "Message Received:" + msgText + ANSI_RESET);
+          System.out.println(ANSI_WHITE + "Message Received: " + msgText + ANSI_RESET);
 
-          if (msgText.equals(commands[0])) { // Improvement
-            //
-            System.out.println(ANSI_GREEN + "command: [" + msgText + "] recognized" + ANSI_RESET);
-            improvementCommand();
-          } else if (msgText.equals(commands[1])) { // WORSENING
-            //
-            System.out.println(ANSI_GREEN + "command: [" + msgText + "] recognized" + ANSI_RESET);
-            worseningCommand();
+          // Check if the received message is the BLOCK_IP command
+          if (msgText.equals(COMMANDS.BLOCK_IP.name())) {
+            System.out.println(ANSI_GREEN + "Command: [" + msgText + "] recognized" + ANSI_RESET);
+            blockIpCommand(); // Call the specific command method
           } else {
-            System.out.println(ANSI_RED + "command: [" + msgText + "] not recognized" + ANSI_RESET);
+            System.out.println(ANSI_RED + "Command: [" + msgText + "] not recognized. Expected: "
+                + COMMANDS.BLOCK_IP.name() + ANSI_RESET);
           }
-
         }
 
         @Override
         public void deliveryComplete(IMqttDeliveryToken token) {
+          // Not implemented for this example
         }
-
       });
 
       client.subscribe(COMMANDS_TOPIC);
-      System.out.println(debugInfo + "subscribed to topic: " + COMMANDS_TOPIC + ANSI_RESET);
+      System.out.println(debugInfo + "Subscribed to topic: " + COMMANDS_TOPIC + ANSI_RESET);
 
     } catch (MqttException e) {
       e.printStackTrace();
-      System.err.println(ANSI_RED + "MQTT Problems" + ANSI_RESET);
+      System.err.println(ANSI_RED + "MQTT Problems occurred: " + e.getMessage() + ANSI_RESET);
     }
-
   }
 
-  /*
-   * return 0: OK
-   * return 1: can't increase
-   * return 2: NOT OK
+  /**
+   * Responds to the BLOCK_IP command by setting the 'suspicious_activity' value
+   * to 0.0 in the JSON file.
+   * This implies that blocking the IP resolves or nullifies the suspicious
+   * activity.
+   *
+   * @return 0 if successful, 2 if JSON operation failed.
    */
-  private int improvementCommand() {
-    System.out.println(debugInfo + "Improvement ...");
+  private int blockIpCommand() {
+    System.out.println(debugInfo + "Executing BLOCK_IP command: Setting suspicious_activity to 0...");
 
-    // NOTE: JSON stuff
     try {
-      // create object mapper instance
       ObjectMapper mapper = new ObjectMapper();
       File file = Paths.get(ENV_FILE_PATH).toFile();
 
-      // Parsing JSON
       Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {
       });
 
-      // // Print
-      // for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
-      // System.out.println(entry.getKey() + "=" + entry.getValue());
-      // }
-
-      // Update value
       if (map.containsKey(ENV_NODE)) {
         Map<String, Object> innerMap = map.get(ENV_NODE);
-
-        Object valueObj = innerMap.get("value");
-        double newValue = 0;
-        if (valueObj instanceof Number) {
-          double currentValue = ((Number) valueObj).doubleValue();
-
-          if ((currentValue - 1) < MIN_VAL) {
-            System.err.println(ANSI_RED + "MIN_VAL Exceeded");
-            return 1;
-          }
-
-          newValue = currentValue - 1.0;
-          innerMap.put("value", newValue);
-        } else {
-          System.err.println(ANSI_RED + "value is not a Number");
-          return 2;
-        }
-        innerMap.put("value", newValue);
+        // Directly set the value to 0.0 as per the requirement
+        double newValue = 0.0;
+        innerMap.put(NODE_VALUE, newValue);
+        System.out.println(ANSI_GREEN + "Suspicious activity value set to 0.0 (IP Blocked)." + ANSI_RESET);
+      } else {
+        System.err.println(ANSI_RED + "BLOCK_IP: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
+        return 2;
       }
 
-      // Write on file the updates
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
-      System.out.println(debugInfo + "Value updated");
+      System.out.println(debugInfo + "JSON file updated.");
 
     } catch (Exception ex) {
       ex.printStackTrace();
-      System.out.println("JSON BOOM");
+      System.err.println(
+          ANSI_RED + "JSON Error during BLOCK_IP operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+      return 2;
     }
-
     return 0; // OK
   }
-
-  /*
-   * return 0: OK
-   * return 1: NOT OK
-   */
-  private int worseningCommand() {
-    System.out.println(debugInfo + "WORSENING ...");
-
-    // NOTE: JSON stuff
-    try {
-      // create object mapper instance
-      ObjectMapper mapper = new ObjectMapper();
-      File file = Paths.get(ENV_FILE_PATH).toFile();
-
-      // Parsing JSON
-      Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {
-      });
-
-      // // Print
-      // for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
-      // System.out.println(entry.getKey() + "=" + entry.getValue());
-      // }
-
-      // Update value
-      if (map.containsKey(ENV_NODE)) {
-        Map<String, Object> innerMap = map.get(ENV_NODE);
-
-        Object valueObj = innerMap.get("value");
-        double newValue = 0;
-        if (valueObj instanceof Number) {
-          double currentValue = ((Number) valueObj).doubleValue();
-
-          if ((currentValue + 1) > MAX_VAL) {
-            System.err.println(ANSI_RED + "MAX_VAL Exceeded");
-            return 1;
-          }
-
-          newValue = currentValue + 1.0;
-          innerMap.put("value", newValue);
-        } else {
-          System.err.println(ANSI_RED + "value is not a Number");
-          return 2;
-        }
-        innerMap.put("value", newValue);
-      }
-
-      // Write on file the updates
-      mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
-      System.out.println(debugInfo + "Value updated");
-
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      System.out.println("JSON BOOM");
-    }
-
-    return 0; // OK
-  }
-
 }
