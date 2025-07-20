@@ -1,0 +1,22 @@
+{
+    "bandwidth": {
+      "CRITICAL": "REDUCE_BANDWIDTH_USAGE",
+      "WARNING": "OPTIMIZE_BANDWIDTH"
+    },
+    "latency": {
+      "CRITICAL": "PRIORITIZE_TRAFFIC",
+      "WARNING": "OPTIMIZE_ROUTES"
+    },
+    "packet_loss": {
+      "CRITICAL": "ACTIVATE_REDUNDANCY",
+      "WARNING": "CHECK_CONNECTIONS"
+    },
+    "suspicious_activity": {
+      "CRITICAL": "BLOCK_SOURCE",
+      "WARNING": "INCREASE_MONITORING"
+    },
+    "traffic_flow": {
+      "CRITICAL": "REDUCE_TRAFFIC_SOURCES",
+      "WARNING": "ADJUST_QOS"
+    }
+  }

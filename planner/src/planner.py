@@ -1,140 +1,178 @@
 import os
 import json
+import logging
+import uuid
+import sys
+import time
+import socket
 import paho.mqtt.client as mqtt
+from datetime import datetime
 
-# Configurazione
+# --- Configurazione del Logging ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- Configurazione da variabili d'ambiente ---
 MQTT_BROKER = os.getenv('MQTT_BROKER', 'mosquitto-container')
 MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
 
-# Mappatura azioni
-ACTIONS = {
-    'bandwidth_usage': {
-        'CRITICAL': 'REDUCE_BANDWIDTH_USAGE',
-        'WARNING': 'OPTIMIZE_BANDWIDTH'
-    },
-    'latency': {
-        'CRITICAL': 'PRIORITIZE_TRAFFIC',
-        'WARNING': 'OPTIMIZE_ROUTES'
-    },
-    'packet_loss': {
-        'CRITICAL': 'ACTIVATE_REDUNDANCY',
-        'WARNING': 'CHECK_CONNECTIONS'
-    },
-    'suspicious_activity': {
-        'CRITICAL': 'BLOCK_SOURCE',
-        'WARNING': 'INCREASE_MONITORING'
-    }
-}
+# Genera un ID client MQTT univoco
+MQTT_CLIENT_ID = f"planner-{uuid.uuid4()}"
 
-# Client MQTT
-mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+# --- DICHIARA mqtt_client COME VARIABILE GLOBALE QUI ---
+mqtt_client = None # Inizializza a None, verrà assegnato in main()
 
-def on_connect(client, userdata, flags, rc):
-    """
-    Callback when the planner connects to the MQTT broker.
+# --- Funzione per verificare la connettività di rete ---
+def wait_for_service(host, port, timeout=30):
+    """Attende che un servizio di rete sia disponibile."""
+    start_time = time.time()
+    while True:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                logger.info(f"Servizio {host}:{port} è disponibile.")
+                return True
+        except (socket.timeout, ConnectionRefusedError, OSError) as e:
+            logger.warning(f"In attesa del servizio {host}:{port}... ({e}). Riprovo tra 3 secondi.")
+            time.sleep(3)
+        if time.time() - start_time > timeout:
+            logger.critical(f"Timeout raggiunto. Il servizio {host}:{port} non è disponibile dopo {timeout} secondi.")
+            return False
 
-    Args:
-        client (Client): MQTT client instance
-        userdata (Any): User data
-        flags (dict): Connection flags
-        rc (int): Connection result code
-    """
-    print(f"✅ Planner connected to MQTT broker")
-    client.subscribe("analysis/results")
-    print("Subscribed to analysis/results")
+# --- Caricamento delle Azioni da File o default ---
+ACTIONS_FILE = os.getenv('ACTIONS_FILE', '/app/config/actions.json')
+ACTIONS = {}
+
+def load_actions():
+    global ACTIONS
+    if os.path.exists(ACTIONS_FILE):
+        try:
+            with open(ACTIONS_FILE, 'r') as f:
+                ACTIONS = json.load(f)
+            logger.info(f"Azioni caricate da {ACTIONS_FILE}: {ACTIONS}")
+        except Exception as e:
+            logger.error(f"Errore nel caricamento delle azioni da {ACTIONS_FILE}: {e}. Verranno usate le azioni di default/interne.", exc_info=True)
+            # Azioni di fallback
+            ACTIONS = {
+                "bandwidth": {
+                    "CRITICAL": "REDUCE_BANDWIDTH_USAGE",
+                    "WARNING": "OPTIMIZE_BANDWIDTH"
+                },
+                "latency": {
+                    "CRITICAL": "PRIORITIZE_TRAFFIC",
+                    "WARNING": "OPTIMIZE_ROUTES"
+                },
+                "packet_loss": {
+                    "CRITICAL": "ACTIVATE_REDUNDANCY",
+                    "WARNING": "CHECK_CONNECTIONS"
+                },
+                "suspicious_activity": {
+                    "CRITICAL": "BLOCK_SOURCE",
+                    "WARNING": "INCREASE_MONITORING"
+                },
+                "traffic_flow": {
+                    "CRITICAL": "REDUCE_TRAFFIC_SOURCES",
+                    "WARNING": "ADJUST_QOS"
+                }
+            }
+    else:
+        logger.warning(f"File azioni non trovato: {ACTIONS_FILE}. Verranno usate le azioni di default/interne.")
+        ACTIONS = {
+            "bandwidth": {"CRITICAL": "REDUCE_BANDWIDTH_USAGE", "WARNING": "OPTIMIZE_BANDWIDTH"},
+            "latency": {"CRITICAL": "PRIORITIZE_TRAFFIC", "WARNING": "OPTIMIZE_ROUTES"},
+            "packet_loss": {"CRITICAL": "ACTIVATE_REDUNDANCY", "WARNING": "CHECK_CONNECTIONS"},
+            "suspicious_activity": {"CRITICAL": "BLOCK_SOURCE", "WARNING": "INCREASE_MONITORING"},
+            "traffic_flow": {"CRITICAL": "REDUCE_TRAFFIC_SOURCES", "WARNING": "ADJUST_QOS"}
+        }
+
+load_actions() # Carica le azioni all'avvio
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        logger.info(f"Connesso al broker MQTT con successo. Client ID: {MQTT_CLIENT_ID}")
+        client.subscribe("analysis/results")
+        logger.info("Sottoscritto al topic 'analysis/results'")
+    else:
+        logger.error(f"Fallita la connessione al broker MQTT con codice: {reason_code}")
 
 def on_message(client, userdata, msg):
-    
-    """
-    Callback when the planner receives a message from the MQTT broker.
-
-    Args:
-        client (Client): MQTT client instance
-        userdata (Any): User data
-        msg (MqttMessage): Received MQTT message
-
-    Notes:
-        The planner is subscribed to the "analysis/results" topic, and this
-        callback is invoked when a message is published to that topic. The
-        message payload is expected to be a JSON string containing the
-        analysis results. The planner will then plan actions based on the
-        results.
-    """
     if msg.topic == "analysis/results":
         try:
             results = json.loads(msg.payload.decode())
-            print("📋 Received analysis results. Planning actions...")
+            logger.info("Ricevuti risultati di analisi. Pianificazione azioni...")
             plan_actions(results)
+        except json.JSONDecodeError as e:
+            logger.error(f"Errore di parsing JSON nei risultati di analisi: {str(e)}. Payload: {msg.payload.decode()}", exc_info=True)
         except Exception as e:
-            print(f"⚠️ Error processing results: {str(e)}")
+            logger.error(f"Errore durante l'elaborazione dei risultati di analisi: {str(e)}", exc_info=True)
 
-def plan_actions(analysis_results):
+def plan_actions(analysis_result):
     """
-    Plan actions based on the given analysis results.
-
-    Args:
-        analysis_results (dict): Analysis results with metric names as keys and
-            dictionaries as values. Each dictionary should contain the
-            following keys:
-                - status (str): Status of the analysis (WARNING, CRITICAL, etc.)
-                - current (float): Current value of the metric
-
-    Returns:
-        None
-
-    Notes:
-        This function will plan actions based on the given analysis results and
-        publish them to the corresponding MQTT topics. The actions will be
-        logged to the console.
+    Pianifica azioni basate sui risultati di analisi ricevuti.
     """
-    planned_actions = []
+    global mqtt_client # DICHIARA DI VOLER USARE LA VARIABILE GLOBALE QUI
 
-    for metric, data in analysis_results.items():
-        status = data['status']
+    metric = analysis_result.get('metric')
+    status = analysis_result.get('status')
+    current_value = analysis_result.get('value')
 
-        if status in ['WARNING', 'CRITICAL']:
-            action = ACTIONS.get(metric, {}).get(status)
+    if not all([metric, status, current_value is not None]):
+        logger.warning(f"Risultati di analisi incompleti o malformati: {analysis_result}")
+        return
 
-            if action:
-                action_topic = f"Network/{metric}/commands"
-                payload = json.dumps({
-                    'action': action,
-                    'metric': metric,
-                    'value': data['current'],
-                    'reason': status
-                })
+    planned_action = None
+    action_details = ACTIONS.get(metric, {})
 
+    if status == 'CRITICAL':
+        planned_action = action_details.get('CRITICAL')
+    elif status == 'WARNING':
+        planned_action = action_details.get('WARNING')
+
+    if planned_action:
+        action_topic = f"Network/{metric}/commands"
+        payload = json.dumps({
+            'action': planned_action,
+            'metric': metric,
+            'value': current_value,
+            'status': status,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+        try:
+            # Assicurati che mqtt_client sia stato inizializzato
+            if mqtt_client:
                 mqtt_client.publish(action_topic, payload)
-                planned_actions.append({
-                    'metric': metric,
-                    'action': action,
-                    'topic': action_topic
-                })
-
-    if planned_actions:
-        print(f"📝 Planned {len(planned_actions)} actions:")
-        for action in planned_actions:
-            print(f"  - {action['metric']}: {action['action']} (via {action['topic']})")
+                logger.info(f"Azione pianificata e pubblicata: Metrica='{metric}', Azione='{planned_action}', Topic='{action_topic}'")
+            else:
+                logger.error("Errore: mqtt_client non è stato inizializzato. Impossibile pubblicare l'azione.")
+        except Exception as mqtt_pub_err:
+            logger.error(f"Errore durante la pubblicazione dell'azione per '{metric}': {mqtt_pub_err}", exc_info=True)
     else:
-        print("✅ No actions needed. System is stable.")
+        logger.info(f"Nessuna azione necessaria o definita per metrica '{metric}' con stato '{status}'.")
 
+# --- Main logic ---
 def main():
-    # Configura MQTT
-    """
-    Main entry point of the planner. Configures the MQTT connection and starts
-    the loop to wait for analysis results.
+    global mqtt_client # DICHIARA DI VOLER ASSEGNARE ALLA VARIABILE GLOBALE QUI
 
-    Notes:
-        The planner is subscribed to the "analysis/results" topic, and when a
-        message is published to that topic, the on_message callback is invoked.
-        The planner will then plan actions based on the analysis results and
-        publish them to the corresponding MQTT topics.
-    """
+    # 1. Attendi che il broker MQTT sia disponibile
+    logger.info(f"Planner: Attendo che il broker MQTT ({MQTT_BROKER}:{MQTT_PORT}) sia pronto...")
+    if not wait_for_service(MQTT_BROKER, MQTT_PORT):
+        logger.critical("Planner: Il broker MQTT non è disponibile. Esco.")
+        sys.exit(1)
+
+    # 2. Configura e connetti il client MQTT
+    # ASSEGNAZIONE ALLA VARIABILE GLOBALE
+    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=MQTT_CLIENT_ID)
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
-    print("🚦 Planner started. Waiting for analysis results...")
+    logger.info(f"Planner: Tentativo di connessione a MQTT Broker: {MQTT_BROKER}:{MQTT_PORT}")
+    try:
+        mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    except Exception as e:
+        logger.critical(f"Planner: Impossibile connettersi al broker MQTT dopo aver atteso: {e}")
+        sys.exit(1)
+
+    logger.info("Planner avviato. In attesa di risultati di analisi...")
     mqtt_client.loop_forever()
 
 if __name__ == "__main__":

@@ -125,6 +125,15 @@ services:
       - mqtt
     environment:
       MQTT_BROKER: mosquitto-container
+      # Non è strettamente necessario impostare MQTT_PORT qui se il default nel codice è 1883,
+      # ma è buona pratica per chiarezza e per facilitare modifiche future.
+      MQTT_PORT: 1883
+      # Specifica il percorso del file delle azioni all'interno del container
+      ACTIONS_FILE: /app/config/actions.json
+    volumes:
+      # Monta la directory locale 'planner/config' nel container come '/app/config'
+      # Questo rende il file actions.json disponibile al Planner
+      - ./planner/config:/app/config
 
 networks:
   mqtt:
