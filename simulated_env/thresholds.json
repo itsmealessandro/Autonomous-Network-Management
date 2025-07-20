@@ -1,0 +1,22 @@
+{
+  "traffic_flow": {
+    "MAX": 80,
+    "MIN": 10
+  },
+  "bandwidth_usage": {
+    "MAX": 80,
+    "MIN": 10
+  },
+  "latency": {
+    "MAX": 100,
+    "MIN": 10
+  },
+  "packet_loss": {
+    "MAX": 5,
+    "MIN": 1.5
+  },
+  "suspicious_activity": {
+    "MAX": 5,
+    "MIN": 1.0
+  }
+}

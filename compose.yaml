@@ -110,6 +110,7 @@ services:
       INFLUX_BUCKET: network-metrics  
     volumes:
       - ./path/locale/token:/app/influx_token
+      - ./simulated_env:/simulated_env:ro
 
     secrets:
       - influx_token
