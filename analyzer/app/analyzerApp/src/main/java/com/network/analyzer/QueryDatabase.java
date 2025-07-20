@@ -24,9 +24,8 @@ public class QueryDatabase {
   private final char[] TOKEN = "my-super-secret-token".toCharArray();
   // private final char[] TOKEN = System.getenv("INFLUX_TOKEN").toCharArray();
   private final String ORG = "network-monitoring";
-  // private final String URL = "http://localhost:" +
   // System.getenv("INFLUX_PORT");
-  private final String URL = "http://localhost:8086";
+  private final String URL = "http://influxdb:8086";
 
   public QueryDatabase(DatabaseService databaseService) {
     this.databaseService = databaseService;
