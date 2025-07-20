@@ -1,21 +1,24 @@
-FROM python:3.10-slim
+# Stage 1: Build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+
+# Imposto la cartella di lavoro
+WORKDIR /build
+
+# Copio solo la cartella con il progetto Maven
+COPY app/analyzerApp ./analyzerApp
+
+# Entro nella directory e compilo
+WORKDIR /build/analyzerApp
+
+RUN mvn clean package
+
+# Stage 2: Runtime
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Installa dipendenze di sistema
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Copio il JAR dalla build
+COPY --from=build /build/analyzerApp/target/*.jar app.jar
 
-# Installa dipendenze Python
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia il codice sorgente
-COPY src/ ./src/
-
-# Imposta variabili d'ambiente
-ENV INFLUX_TOKEN_FILE=/run/secrets/influx_token
-
-# Imposta entrypoint
-CMD ["sh", "-c", "export INFLUX_TOKEN=$(cat ${INFLUX_TOKEN_FILE}) && python src/analyzer.py"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
