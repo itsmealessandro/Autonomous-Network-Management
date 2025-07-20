@@ -168,51 +168,46 @@ public class Actuator implements BundleActivator, Runnable {
    *
    * @return 0 if successful, 1 if MAX_VAL exceeded, 2 if JSON operation failed.
    */
-  private int optimizeCommand() {
-    System.out.println(debugInfo + "OPTIMIZING traffic_flow (increasing value)...");
+private int optimizeCommand() {
+  System.out.println(debugInfo + "OPTIMIZING traffic_flow (decreasing value)...");
 
-    try {
-      ObjectMapper mapper = new ObjectMapper();
-      File file = Paths.get(ENV_FILE_PATH).toFile();
+  try {
+    ObjectMapper mapper = new ObjectMapper();
+    File file = Paths.get(ENV_FILE_PATH).toFile();
 
-      Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {
-      });
+    Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {});
+    if (map.containsKey(ENV_NODE)) {
+      Map<String, Object> innerMap = map.get(ENV_NODE);
+      Object valueObj = innerMap.get(NODE_VALUE);
+      double newValue;
 
-      if (map.containsKey(ENV_NODE)) {
-        Map<String, Object> innerMap = map.get(ENV_NODE);
-        Object valueObj = innerMap.get(NODE_VALUE);
-        double newValue;
-
-        if (valueObj instanceof Number) {
-          double currentValue = ((Number) valueObj).doubleValue();
-          // For traffic_flow, optimize means increase
-          if ((currentValue + 10.0) > MAX_VAL) { // Increasing by 10.0 based on your original logic
-            System.err
-                .println(ANSI_RED + "OPTIMIZE: MAX_VAL Exceeded. Cannot increase traffic flow further." + ANSI_RESET);
-            return 1;
-          }
-          newValue = currentValue + 10.0; // Increase by 10.0
-          innerMap.put(NODE_VALUE, newValue);
-        } else {
-          System.err.println(ANSI_RED + "OPTIMIZE: Value in JSON is not a Number for " + ENV_NODE + ANSI_RESET);
-          return 2;
+      if (valueObj instanceof Number) {
+        double currentValue = ((Number) valueObj).doubleValue();
+        if ((currentValue - 10.0) < MIN_VAL) {
+          System.err.println(ANSI_RED + "OPTIMIZE: MIN_VAL Exceeded. Cannot decrease traffic flow further." + ANSI_RESET);
+          return 1;
         }
+        newValue = currentValue - 10.0; // <-- Decrease now
+        innerMap.put(NODE_VALUE, newValue);
       } else {
-        System.err.println(ANSI_RED + "OPTIMIZE: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
+        System.err.println(ANSI_RED + "OPTIMIZE: Value in JSON is not a Number for " + ENV_NODE + ANSI_RESET);
         return 2;
       }
-
-      mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
-      System.out.println(ANSI_GREEN + "Traffic flow value optimized (increased)." + ANSI_RESET);
-
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      System.err.println(
-          ANSI_RED + "JSON Error during OPTIMIZE operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+    } else {
+      System.err.println(ANSI_RED + "OPTIMIZE: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
       return 2;
     }
-    return 0;
+
+    mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
+    System.out.println(ANSI_GREEN + "Traffic flow value optimized (decreased)." + ANSI_RESET);
+
+  } catch (Exception ex) {
+    ex.printStackTrace();
+    System.err.println(ANSI_RED + "JSON Error during OPTIMIZE operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+    return 2;
   }
+  return 0;
+}
 
   /**
    * Attempts to degrade the traffic flow value.
@@ -220,49 +215,44 @@ public class Actuator implements BundleActivator, Runnable {
    *
    * @return 0 if successful, 1 if MIN_VAL exceeded, 2 if JSON operation failed.
    */
-  private int degradeCommand() {
-    System.out.println(debugInfo + "DEGRADING traffic_flow (decreasing value)...");
+private int degradeCommand() {
+  System.out.println(debugInfo + "DEGRADING traffic_flow (increasing value)...");
 
-    try {
-      ObjectMapper mapper = new ObjectMapper();
-      File file = Paths.get(ENV_FILE_PATH).toFile();
+  try {
+    ObjectMapper mapper = new ObjectMapper();
+    File file = Paths.get(ENV_FILE_PATH).toFile();
 
-      Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {
-      });
+    Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {});
+    if (map.containsKey(ENV_NODE)) {
+      Map<String, Object> innerMap = map.get(ENV_NODE);
+      Object valueObj = innerMap.get(NODE_VALUE);
+      double newValue;
 
-      if (map.containsKey(ENV_NODE)) {
-        Map<String, Object> innerMap = map.get(ENV_NODE);
-        Object valueObj = innerMap.get(NODE_VALUE);
-        double newValue;
-
-        if (valueObj instanceof Number) {
-          double currentValue = ((Number) valueObj).doubleValue();
-          // For traffic_flow, degrade means decrease
-          if ((currentValue - 10.0) < MIN_VAL) { // Decreasing by 10.0 based on your original logic
-            System.err
-                .println(ANSI_RED + "DEGRADE: MIN_VAL Exceeded. Cannot decrease traffic flow further." + ANSI_RESET);
-            return 1;
-          }
-          newValue = currentValue - 10.0; // Decrease by 10.0
-          innerMap.put(NODE_VALUE, newValue);
-        } else {
-          System.err.println(ANSI_RED + "DEGRADE: Value in JSON is not a Number for " + ENV_NODE + ANSI_RESET);
-          return 2;
+      if (valueObj instanceof Number) {
+        double currentValue = ((Number) valueObj).doubleValue();
+        if ((currentValue + 10.0) > MAX_VAL) {
+          System.err.println(ANSI_RED + "DEGRADE: MAX_VAL Exceeded. Cannot increase traffic flow further." + ANSI_RESET);
+          return 1;
         }
+        newValue = currentValue + 10.0; // <-- Increase now
+        innerMap.put(NODE_VALUE, newValue);
       } else {
-        System.err.println(ANSI_RED + "DEGRADE: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
+        System.err.println(ANSI_RED + "DEGRADE: Value in JSON is not a Number for " + ENV_NODE + ANSI_RESET);
         return 2;
       }
-
-      mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
-      System.out.println(ANSI_GREEN + "Traffic flow value degraded (decreased)." + ANSI_RESET);
-
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      System.err.println(
-          ANSI_RED + "JSON Error during DEGRADE operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+    } else {
+      System.err.println(ANSI_RED + "DEGRADE: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
       return 2;
     }
-    return 0;
+
+    mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
+    System.out.println(ANSI_GREEN + "Traffic flow value degraded (increased)." + ANSI_RESET);
+
+  } catch (Exception ex) {
+    ex.printStackTrace();
+    System.err.println(ANSI_RED + "JSON Error during DEGRADE operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+    return 2;
   }
+  return 0;
+}
 }
