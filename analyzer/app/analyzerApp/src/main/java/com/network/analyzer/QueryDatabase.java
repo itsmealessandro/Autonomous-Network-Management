@@ -46,10 +46,11 @@ public class QueryDatabase {
     QueryApi queryApi = influxDBClient.getQueryApi();
 
     String flux = "from(bucket: \"network-metrics\")\n" +
-        "  |> range(start: -5s)\n" +
+        "  |> range(start: 0)\n" + // include tutti i dati storici
         "  |> filter(fn: (r) => r._field == \"value\")\n" +
-        "  |> sort(columns: [\"_time\"])\n" +
-        "  |> limit(n: 100)";
+        "  |> sort(columns: [\"_time\"], desc: true)\n" + // ordina dal più recente
+        "  |> limit(n: 5)\n" +
+        "  |> sort(columns: [\"_time\"])"; // opzionale: riordina in ordine cronologico
 
     List<FluxTable> tables = queryApi.query(flux);
 
@@ -99,7 +100,8 @@ public class QueryDatabase {
           databaseService.analyzeTrafficFlow(last5);
           break;
         default:
-          System.out.println("No service method for metric: " + metric);
+          // Gestione sensori dinamici (es: Network/sensoreX/value)
+          databaseService.analyzeNewSensor(metric, last5);
       }
     }
 

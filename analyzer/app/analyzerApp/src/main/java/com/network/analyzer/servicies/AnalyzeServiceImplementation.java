@@ -32,4 +32,10 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
     System.out.println("[AnalyzeService] analyzeTrafficFlow called with values: " + last5);
   }
 
+  @Override
+  public void analyzeNewSensor(String metric, List<Double> last5) {
+    System.out.println("[AnalyzeService] analyzeNewSensor called with values: " + last5);
+
+  }
+
 }

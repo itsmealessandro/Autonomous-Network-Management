@@ -13,4 +13,7 @@ public interface AnalyzeService {
   void analyzeLatency(List<Double> last5);
 
   void analyzeTrafficFlow(List<Double> last5);
+
+  void analyzeNewSensor(String metric, List<Double> last5);
+
 }
