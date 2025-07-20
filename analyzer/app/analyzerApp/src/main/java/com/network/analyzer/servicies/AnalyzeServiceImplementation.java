@@ -2,26 +2,17 @@ package com.network.analyzer.servicies;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 @Service
 public class AnalyzeServiceImplementation implements AnalyzeService {
 
   private static final String THRESHOLDS_FILE = "/simulated_env/thresholds.json";
-  private static String PLANNER_PORT = System.getenv("PLANNER_PORT");
-  private static final String PLANNER_URL = "http://planner:" + PLANNER_PORT + "/analysis";
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final Map<String, String> alarmRecap = new HashMap<>();
 
   private String analyzeMetric(String metricName, List<Double> last5) {
     System.out.println("[AnalyzeService] " + metricName + " called with values: " + last5);
@@ -58,59 +49,33 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
     return "NESSUNO";
   }
 
-  private void finalizeAndSendRecap() {
-    try {
-      System.out.println("[AnalyzeService] Invio POST a planner:/analysis con i risultati: " + alarmRecap);
-
-      RestTemplate restTemplate = new RestTemplate();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      HttpEntity<Map<String, String>> request = new HttpEntity<>(alarmRecap, headers);
-
-      restTemplate.postForObject(PLANNER_URL, request, String.class);
-
-    } catch (Exception e) {
-      System.err.println("[AnalyzeService] Errore durante la POST al planner: " + e.getMessage());
-    } finally {
-      alarmRecap.clear(); // pulizia per la prossima analisi
-    }
+  @Override
+  public String analyzeBandwidth(List<Double> last5) {
+    return analyzeMetric("bandwidth_usage", last5);
   }
 
   @Override
-  public void analyzeBandwidth(List<Double> last5) {
-    String result = analyzeMetric("bandwidth_usage", last5);
-    alarmRecap.put("bandwidth_usage", result);
+  public String analyzeLatency(List<Double> last5) {
+    return analyzeMetric("latency", last5);
   }
 
   @Override
-  public void analyzeLatency(List<Double> last5) {
-    String result = analyzeMetric("latency", last5);
-    alarmRecap.put("latency", result);
+  public String analyzePacketLoss(List<Double> last5) {
+    return analyzeMetric("packet_loss", last5);
   }
 
   @Override
-  public void analyzePacketLoss(List<Double> last5) {
-    String result = analyzeMetric("packet_loss", last5);
-    alarmRecap.put("packet_loss", result);
+  public String analyzeSuspiciousActivity(List<Double> last5) {
+    return analyzeMetric("suspicious_activity", last5);
   }
 
   @Override
-  public void analyzeSuspiciousActivity(List<Double> last5) {
-    String result = analyzeMetric("suspicious_activity", last5);
-    alarmRecap.put("suspicious_activity", result);
+  public String analyzeTrafficFlow(List<Double> last5) {
+    return analyzeMetric("traffic_flow", last5);
   }
 
   @Override
-  public void analyzeTrafficFlow(List<Double> last5) {
-    String result = analyzeMetric("traffic_flow", last5);
-    alarmRecap.put("traffic_flow", result);
-  }
-
-  @Override
-  public void analyzeNewSensor(String metric, List<Double> last5) {
-    String result = analyzeMetric(metric, last5);
-    alarmRecap.put(metric, result);
-    finalizeAndSendRecap(); // solo alla fine dell'ultima analisi
+  public String analyzeNewSensor(String metric, List<Double> last5) {
+    return analyzeMetric(metric, last5);
   }
 }
