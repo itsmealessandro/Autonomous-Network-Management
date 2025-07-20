@@ -21,22 +21,28 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
 
     try {
       JsonNode root = objectMapper.readTree(new File(THRESHOLDS_FILE));
-      double maxThreshold = root.path(metricName).path("MAX").asDouble();
-      double minThreshold = root.path(metricName).path("MIN").asDouble();
+      JsonNode metricNode = root.path(metricName);
+      boolean hasMax = metricNode.has("MAX");
+      boolean hasMin = metricNode.has("MIN");
 
-      long countAboveMax = last5.stream().filter(val -> val > maxThreshold).count();
-      long countBelowMin = last5.stream().filter(val -> val < minThreshold).count();
+      double maxThreshold = hasMax ? metricNode.path("MAX").asDouble() : Double.MAX_VALUE;
+      double minThreshold = hasMin ? metricNode.path("MIN").asDouble() : Double.MIN_VALUE;
+
+      long countAboveMax = hasMax ? last5.stream().filter(val -> val > maxThreshold).count() : 0;
+      long countBelowMin = hasMin ? last5.stream().filter(val -> val < minThreshold).count() : 0;
       long totalBreaches = countAboveMax + countBelowMin;
 
       if (totalBreaches == 1) {
         double breachedValue = last5.stream()
-            .filter(val -> val > maxThreshold || val < minThreshold)
+            .filter(val -> (hasMax && val > maxThreshold) || (hasMin && val < minThreshold))
             .findFirst()
             .orElse(-1.0);
 
         System.out.println("[AnalyzeService] FALSO ALLARME su " + metricName +
             ": valore anomalo " + breachedValue +
-            " fuori soglia [" + minThreshold + " - " + maxThreshold + "]");
+            " fuori soglia" +
+            (hasMin ? " [" + minThreshold : "") +
+            " - " + (hasMax ? maxThreshold : "") + "]");
         return PossibleSymptoms.FALSE.name();
       } else if (countAboveMax > 1) {
         System.out.println("[AnalyzeService] ⚠️ ALLARME HIGH su " + metricName +
@@ -48,11 +54,13 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
         return PossibleSymptoms.LOW.name();
       }
 
-    } catch (IOException e) {
-      System.err.println("[AnalyzeService] Errore nella lettura di " + THRESHOLDS_FILE + ": " + e.getMessage());
-    }
+      // Nessuna violazione grave
+      return PossibleSymptoms.FINE.name();
 
-    return PossibleSymptoms.FINE.name();
+    } catch (IOException e) {
+      e.printStackTrace();
+      return PossibleSymptoms.FALSE.name(); // oppure lancia un'eccezione
+    }
   }
 
   @Override

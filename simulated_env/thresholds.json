@@ -16,7 +16,6 @@
     "MIN": 1.5
   },
   "suspicious_activity": {
-    "MAX": 5,
-    "MIN": 1.0
+    "MAX": 5
   }
 }

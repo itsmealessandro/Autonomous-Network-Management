@@ -11,7 +11,6 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import com.network.planner.model.PossibleSymptoms;
 
 @Service
 public class PlanActionsServiceImpl implements PlanActionsService {
@@ -41,11 +40,11 @@ public class PlanActionsServiceImpl implements PlanActionsService {
 
           switch (symptom) {
             case HIGH:
-              command = "WORSENING";
+              command = "OPTIMIZE";
               result.append(sensorName).append(": HIGH → Invia comando WORSENING a ").append(actuatorName).append("\n");
               break;
             case LOW:
-              command = "IMPROVEMENT";
+              command = "DEGRADE";
               result.append(sensorName).append(": LOW → Invia comando IMPROVEMENT a ").append(actuatorName)
                   .append("\n");
               break;
@@ -58,6 +57,9 @@ public class PlanActionsServiceImpl implements PlanActionsService {
           }
 
           if (command != null) {
+            if (sensorName.equals("suspicious_activity")) {
+              command = "BLOCK_IP";
+            }
             MqttMessage message = new MqttMessage(command.getBytes());
             message.setQos(qos);
             mqttClient.publish(topic, message);

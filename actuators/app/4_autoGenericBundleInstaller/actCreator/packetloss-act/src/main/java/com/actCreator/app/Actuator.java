@@ -33,6 +33,15 @@ public class Actuator implements BundleActivator, Runnable {
 
   final String debugInfo = ANSI_WHITE + "[INFO]: " + ANSI_RESET;
 
+  // Use a HashSet to store valid command strings for quick lookup
+  HashSet<String> validCommands = new HashSet<>();
+
+  // Define commands using an enum
+  private enum COMMANDS {
+    OPTIMIZE, // For packet_loss, optimize means decreasing the value
+    DEGRADE // For packet_loss, degrade means increasing the value
+  }
+
   // MQTT
   final String CLIENT_ID = "act_packetloss";
   final String GENERAL_TOPIC = "Network/packet_loss";
@@ -45,14 +54,13 @@ public class Actuator implements BundleActivator, Runnable {
   final String BROKER = "tcp://broker:1883";
   final double MAX_VAL = 100.0;
   final double MIN_VAL = 0.0;
-  final String[] commands = { "IMPROVEMENT", "WORSENING" };
 
   private final Thread thread = new Thread(this);
 
   @Override
   public String toString() {
-    // Definisci la larghezza massima per i nomi dei campi per l'allineamento
-    int fieldNameWidth = 15; // Adatta questo valore se i tuoi nomi di campo sono più lunghi
+    // Define max width for field names for alignment
+    int fieldNameWidth = 15;
 
     return "ActuatorData {\n" +
         String.format("  %-" + fieldNameWidth + "s: '%s'\n", "CLIENT_ID", CLIENT_ID) +
@@ -65,31 +73,37 @@ public class Actuator implements BundleActivator, Runnable {
         "}";
   }
 
+  // Method to populate the validCommands HashSet from the enum
+  private void setupCommands() {
+    for (COMMANDS cmd : COMMANDS.values()) {
+      this.validCommands.add(cmd.name()); // Add the string name of each enum constant
+    }
+  }
+
   @Override
   public void start(BundleContext ctx) {
-    System.out.println(debugInfo + "Hi I'm am Actuator and I've just STARED " + ANSI_RESET);
-    System.out.println(debugInfo + "command list: " + this.commands + ANSI_RESET);
+    System.out.println(debugInfo + "Hi, I'm an Actuator and I've just STARTED " + ANSI_RESET);
+    System.out.println(debugInfo + "Setting up commands..." + ANSI_RESET);
+    setupCommands(); // Call the setup method
+    System.out.println(debugInfo + "Command list: " + this.validCommands + ANSI_RESET);
 
-    thread.start(); // this will launch run method
-
+    thread.start(); // This will launch the run method
   }
 
   @Override
   public void stop(BundleContext ctx) {
-    System.out.println(debugInfo + "Hi I'm am Actuator and I've just STOPPPED ");
-
+    System.out.println(debugInfo + "Hi, I'm an Actuator and I've just STOPPED ");
   }
 
   @Override
   public void run() {
-    System.out.println(debugInfo + "I'm running, I'm packet_loss actuator");
+    System.out.println(debugInfo + "I'm running, I'm the packet_loss actuator");
     System.out.println("------------------------------------------------------------");
     System.out.println(ANSI_WHITE + this + ANSI_RESET);
     System.out.println("------------------------------------------------------------");
 
-    // NOTE: enstablishing MQTT Connection
+    // Establish MQTT Connection
     try {
-
       int qos = 1;
       MemoryPersistence persistence = new MemoryPersistence();
       MqttClient client = new MqttClient(BROKER, CLIENT_ID, persistence);
@@ -102,161 +116,153 @@ public class Actuator implements BundleActivator, Runnable {
       System.out.println(ANSI_GREEN + "Connected" + ANSI_RESET);
       System.out.println("------------------------------------------------------------");
 
-      // Callback per ricevere i messaggi
+      // Callback to receive messages
       client.setCallback(new MqttCallback() {
         @Override
         public void connectionLost(Throwable cause) {
-          System.out.println(ANSI_RED + "Connection LOST" + ANSI_RESET + cause.getMessage());
+          System.out.println(ANSI_RED + "Connection LOST: " + ANSI_RESET + cause.getMessage());
         }
 
         @Override
         public void messageArrived(String topic, MqttMessage message) {
           String msgText = new String(message.getPayload());
-          System.out.println(ANSI_WHITE + "Message Received:" + msgText + ANSI_RESET);
+          System.out.println(ANSI_WHITE + "Message Received: " + msgText + ANSI_RESET);
 
-          if (msgText.equals(commands[0])) { // Improvement
-            //
-            System.out.println(ANSI_GREEN + "command: [" + msgText + "] recognized" + ANSI_RESET);
-            improvementCommand();
-          } else if (msgText.equals(commands[1])) { // WORSENING
-            //
-            System.out.println(ANSI_GREEN + "command: [" + msgText + "] recognized" + ANSI_RESET);
-            worseningCommand();
-          } else {
-            System.out.println(ANSI_RED + "command: [" + msgText + "] not recognized" + ANSI_RESET);
+          // Check if the received message is a valid command
+          if (!validCommands.contains(msgText)) {
+            System.out.println(ANSI_RED + "Command: [" + msgText + "] not recognized" + ANSI_RESET);
+            return;
           }
 
+          System.out.println(ANSI_GREEN + "Command: [" + msgText + "] recognized" + ANSI_RESET);
+
+          // Execute action based on the command
+          if (msgText.equals(COMMANDS.OPTIMIZE.name())) {
+            optimizeCommand(); // Packet loss improvement means decreasing the value
+          } else if (msgText.equals(COMMANDS.DEGRADE.name())) {
+            degradeCommand(); // Packet loss worsening means increasing the value
+          } else {
+            // This case should ideally not be reached if validCommands is correctly checked
+            System.out.println(ANSI_RED + "Unexpected command logic branch for: " + msgText + ANSI_RESET);
+          }
         }
 
         @Override
         public void deliveryComplete(IMqttDeliveryToken token) {
+          // Not implemented for this example
         }
-
       });
 
       client.subscribe(COMMANDS_TOPIC);
-      System.out.println(debugInfo + "subscribed to topic: " + COMMANDS_TOPIC + ANSI_RESET);
+      System.out.println(debugInfo + "Subscribed to topic: " + COMMANDS_TOPIC + ANSI_RESET);
 
     } catch (MqttException e) {
       e.printStackTrace();
-      System.err.println(ANSI_RED + "MQTT Problems" + ANSI_RESET);
+      System.err.println(ANSI_RED + "MQTT Problems occurred: " + e.getMessage() + ANSI_RESET);
     }
-
   }
 
-  /*
-   * return 0: OK
-   * return 1: can't increase
-   * return 2: NOT OK
+  /**
+   * Attempts to optimize the packet loss value.
+   * For packet loss, optimization means reducing the value.
+   *
+   * @return 0 if successful, 1 if MIN_VAL exceeded, 2 if JSON operation failed.
    */
-  private int improvementCommand() {
-    System.out.println(debugInfo + "Improvement ...");
+  private int optimizeCommand() {
+    System.out.println(debugInfo + "OPTIMIZING packet_loss (decreasing value)...");
 
-    // NOTE: JSON stuff
     try {
-      // create object mapper instance
       ObjectMapper mapper = new ObjectMapper();
       File file = Paths.get(ENV_FILE_PATH).toFile();
 
-      // Parsing JSON
       Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {
       });
 
-      // // Print
-      // for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
-      // System.out.println(entry.getKey() + "=" + entry.getValue());
-      // }
-
-      // Update value
       if (map.containsKey(ENV_NODE)) {
         Map<String, Object> innerMap = map.get(ENV_NODE);
+        Object valueObj = innerMap.get(NODE_VALUE);
+        double newValue;
 
-        Object valueObj = innerMap.get("value");
-        double newValue = 0;
         if (valueObj instanceof Number) {
           double currentValue = ((Number) valueObj).doubleValue();
-
-          if ((currentValue - 1) < MIN_VAL) {
-            System.err.println(ANSI_RED + "MIN_VAL Exceeded");
+          // For packet_loss, optimize means decrease
+          if ((currentValue - 1.0) < MIN_VAL) { // Decreasing by 1.0 based on your original logic
+            System.err
+                .println(ANSI_RED + "OPTIMIZE: MIN_VAL Exceeded. Cannot decrease packet loss further." + ANSI_RESET);
             return 1;
           }
-
-          newValue = currentValue - 1.0;
-          innerMap.put("value", newValue);
+          newValue = currentValue - 1.0; // Decrease by 1.0
+          innerMap.put(NODE_VALUE, newValue);
         } else {
-          System.err.println(ANSI_RED + "value is not a Number");
+          System.err.println(ANSI_RED + "OPTIMIZE: Value in JSON is not a Number for " + ENV_NODE + ANSI_RESET);
           return 2;
         }
-        innerMap.put("value", newValue);
+      } else {
+        System.err.println(ANSI_RED + "OPTIMIZE: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
+        return 2;
       }
 
-      // Write on file the updates
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
-      System.out.println(debugInfo + "Value updated");
+      System.out.println(ANSI_GREEN + "Packet loss value optimized (decreased)." + ANSI_RESET);
 
     } catch (Exception ex) {
       ex.printStackTrace();
-      System.out.println("JSON BOOM");
+      System.err.println(
+          ANSI_RED + "JSON Error during OPTIMIZE operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+      return 2;
     }
-
-    return 0; // OK
+    return 0;
   }
 
-  /*
-   * return 0: OK
-   * return 1: NOT OK
+  /**
+   * Attempts to degrade the packet loss value.
+   * For packet loss, degradation means increasing the value.
+   *
+   * @return 0 if successful, 1 if MAX_VAL exceeded, 2 if JSON operation failed.
    */
-  private int worseningCommand() {
-    System.out.println(debugInfo + "WORSENING ...");
+  private int degradeCommand() {
+    System.out.println(debugInfo + "DEGRADING packet_loss (increasing value)...");
 
-    // NOTE: JSON stuff
     try {
-      // create object mapper instance
       ObjectMapper mapper = new ObjectMapper();
       File file = Paths.get(ENV_FILE_PATH).toFile();
 
-      // Parsing JSON
       Map<String, Map<String, Object>> map = mapper.readValue(file, new TypeReference<>() {
       });
 
-      // // Print
-      // for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
-      // System.out.println(entry.getKey() + "=" + entry.getValue());
-      // }
-
-      // Update value
       if (map.containsKey(ENV_NODE)) {
         Map<String, Object> innerMap = map.get(ENV_NODE);
+        Object valueObj = innerMap.get(NODE_VALUE);
+        double newValue;
 
-        Object valueObj = innerMap.get("value");
-        double newValue = 0;
         if (valueObj instanceof Number) {
           double currentValue = ((Number) valueObj).doubleValue();
-
-          if ((currentValue + 1) > MAX_VAL) {
-            System.err.println(ANSI_RED + "MAX_VAL Exceeded");
+          // For packet_loss, degrade means increase
+          if ((currentValue + 1.0) > MAX_VAL) { // Increasing by 1.0 based on your original logic
+            System.err
+                .println(ANSI_RED + "DEGRADE: MAX_VAL Exceeded. Cannot increase packet loss further." + ANSI_RESET);
             return 1;
           }
-
-          newValue = currentValue + 1.0;
-          innerMap.put("value", newValue);
+          newValue = currentValue + 1.0; // Increase by 1.0
+          innerMap.put(NODE_VALUE, newValue);
         } else {
-          System.err.println(ANSI_RED + "value is not a Number");
+          System.err.println(ANSI_RED + "DEGRADE: Value in JSON is not a Number for " + ENV_NODE + ANSI_RESET);
           return 2;
         }
-        innerMap.put("value", newValue);
+      } else {
+        System.err.println(ANSI_RED + "DEGRADE: ENV_NODE '" + ENV_NODE + "' not found in JSON." + ANSI_RESET);
+        return 2;
       }
 
-      // Write on file the updates
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, map);
-      System.out.println(debugInfo + "Value updated");
+      System.out.println(ANSI_GREEN + "Packet loss value degraded (increased)." + ANSI_RESET);
 
     } catch (Exception ex) {
       ex.printStackTrace();
-      System.out.println("JSON BOOM");
+      System.err.println(
+          ANSI_RED + "JSON Error during DEGRADE operation for " + ENV_NODE + ": " + ex.getMessage() + ANSI_RESET);
+      return 2;
     }
-
-    return 0; // OK
+    return 0;
   }
-
 }
