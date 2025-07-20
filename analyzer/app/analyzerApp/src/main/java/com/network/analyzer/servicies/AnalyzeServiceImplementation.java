@@ -6,6 +6,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.network.analyzer.servicies.model.PossibleSymptoms;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,7 +17,7 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private String analyzeMetric(String metricName, List<Double> last5) {
-    System.out.println("[AnalyzeService] " + metricName + " called with values: " + last5);
+    System.out.println("[AnalyzeService] " + metricName + " chiamato con valori: " + last5);
 
     try {
       JsonNode root = objectMapper.readTree(new File(THRESHOLDS_FILE));
@@ -35,18 +37,22 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
         System.out.println("[AnalyzeService] FALSO ALLARME su " + metricName +
             ": valore anomalo " + breachedValue +
             " fuori soglia [" + minThreshold + " - " + maxThreshold + "]");
-        return "FALSO";
-      } else if (totalBreaches > 1) {
-        System.out.println("[AnalyzeService] ⚠️ ALLARME su " + metricName +
-            ": " + totalBreaches + " valori fuori soglia [" + minThreshold + " - " + maxThreshold + "]");
-        return "VERO";
+        return PossibleSymptoms.FALSE.name();
+      } else if (countAboveMax > 1) {
+        System.out.println("[AnalyzeService] ⚠️ ALLARME HIGH su " + metricName +
+            ": " + countAboveMax + " valori sopra la soglia massima [" + maxThreshold + "]");
+        return PossibleSymptoms.HIGH.name();
+      } else if (countBelowMin > 1) {
+        System.out.println("[AnalyzeService] ⚠️ ALLARME LOW su " + metricName +
+            ": " + countBelowMin + " valori sotto la soglia minima [" + minThreshold + "]");
+        return PossibleSymptoms.LOW.name();
       }
 
     } catch (IOException e) {
       System.err.println("[AnalyzeService] Errore nella lettura di " + THRESHOLDS_FILE + ": " + e.getMessage());
     }
 
-    return "NESSUNO";
+    return PossibleSymptoms.FINE.name();
   }
 
   @Override
