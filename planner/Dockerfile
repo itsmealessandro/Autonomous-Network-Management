@@ -20,5 +20,4 @@ WORKDIR /app
 # Copio il JAR dalla build
 COPY --from=build /build/plannerApp/target/*.jar app.jar
 
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
