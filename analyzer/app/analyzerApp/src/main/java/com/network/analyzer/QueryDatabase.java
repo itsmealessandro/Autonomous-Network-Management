@@ -14,12 +14,16 @@ import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.QueryApi;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-import com.network.analyzer.servicies.DatabaseService;
+import com.network.analyzer.servicies.AnalyzeService;
 
+/*
+ * This component is used to get data from influxdb.
+ * It has a scheduled getDataFromDB() method that runs every x seconds
+ * */
 @Component
 public class QueryDatabase {
 
-  final DatabaseService databaseService;
+  final AnalyzeService databaseService;
 
   private final char[] TOKEN = "my-super-secret-token".toCharArray();
   // private final char[] TOKEN = System.getenv("INFLUX_TOKEN").toCharArray();
@@ -27,7 +31,7 @@ public class QueryDatabase {
   // System.getenv("INFLUX_PORT");
   private final String URL = "http://influxdb:8086";
 
-  public QueryDatabase(DatabaseService databaseService) {
+  public QueryDatabase(AnalyzeService databaseService) {
     this.databaseService = databaseService;
   }
 
@@ -37,45 +41,69 @@ public class QueryDatabase {
     System.out.println("scheduled method:");
     System.out.println(LocalDateTime.now());
     System.out.println("###################");
-    databaseService.getBandwithWithInterval(5);
 
     InfluxDBClient influxDBClient = InfluxDBClientFactory.create(URL, TOKEN, ORG);
-
     QueryApi queryApi = influxDBClient.getQueryApi();
 
     String flux = "from(bucket: \"network-metrics\")\n" +
         "  |> range(start: -5s)\n" +
         "  |> filter(fn: (r) => r._field == \"value\")\n" +
         "  |> sort(columns: [\"_time\"])\n" +
-        "  |> limit(n: 100)"; // aumenta questo numero se hai molte metriche
+        "  |> limit(n: 100)";
 
     List<FluxTable> tables = queryApi.query(flux);
 
-    // Mappa per raccogliere i valori per ogni metrica
-    Map<String, List<Object>> metricValues = new HashMap<>();
+    Map<String, List<Double>> metricValues = new HashMap<>();
 
     for (FluxTable table : tables) {
       for (FluxRecord record : table.getRecords()) {
         String metric = record.getMeasurement();
         Object value = record.getValue();
 
-        metricValues.computeIfAbsent(metric, k -> new ArrayList<>()).add(value);
+        if (value instanceof Number) {
+          metricValues.computeIfAbsent(metric, k -> new ArrayList<>()).add(((Number) value).doubleValue());
+        }
       }
     }
 
     influxDBClient.close();
 
-    // Stampa in formato leggibile: max 5 valori per metrica
-    for (Map.Entry<String, List<Object>> entry : metricValues.entrySet()) {
-      System.out.println("=== " + entry.getKey() + " ===");
+    for (Map.Entry<String, List<Double>> entry : metricValues.entrySet()) {
+      String metric = entry.getKey();
+      List<Double> values = entry.getValue();
 
-      List<Object> values = entry.getValue();
-      int start = Math.max(0, values.size() - 5); // Prendi gli ultimi 5 valori
-      for (int i = start; i < values.size(); i++) {
-        System.out.println(values.get(i));
-      }
+      // Prendi gli ultimi 5 valori
+      int start = Math.max(0, values.size() - 5);
+      List<Double> last5 = values.subList(start, values.size());
+
+      // Stampa
+      System.out.println("=== " + metric + " ===");
+      last5.forEach(System.out::println);
       System.out.println();
+
+      // Invoca i metodi del servizio in base alla metrica
+      switch (metric) {
+        case "bandwidth_usage":
+          databaseService.analyzeBandwidth(last5);
+          break;
+        case "packet_loss":
+          databaseService.analyzePacketLoss(last5);
+          break;
+        case "suspicious_activity":
+          databaseService.analyzeSuspiciousActivity(last5);
+          break;
+        case "latency":
+          databaseService.analyzeLatency(last5);
+          break;
+        case "traffic_flow":
+          databaseService.analyzeTrafficFlow(last5);
+          break;
+        default:
+          System.out.println("No service method for metric: " + metric);
+      }
     }
+
     return "";
   }
+
 }
