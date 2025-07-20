@@ -95,7 +95,7 @@ services:
       INFLUX_ORG: network-monitoring
       INFLUX_BUCKET: network-metrics
 
-  # --------------------------------------------
+# --------------------------------------------
   # Analyzer -----------------------------------
   # --------------------------------------------
   analyzer:
@@ -105,14 +105,15 @@ services:
       - mqtt
     environment:
       MQTT_BROKER: mosquitto-container
-      INFLUX_URL: http://influxdb:8086
-      INFLUX_ORG: network-monitoring
-      INFLUX_BUCKET: network-metrics  
+      # INFLUX_URL: http://influxdb:8086
+      # INFLUX_ORG: network-monitoring
+      # INFLUX_BUCKET: network-metrics
+      THRESHOLDS_FILE: /app/config/thresholds.json
     volumes:
-      - ./path/locale/token:/app/influx_token
-
-    secrets:
-      - influx_token
+      - ./analyzer/config:/app/config # Monta la directory delle soglie nel container
+      # - ./path/locale/token:/app/influx_token
+    # secrets:
+    #   - influx_token
 
   # --------------------------------------------
   # Planner -----------------------------------
@@ -124,24 +125,6 @@ services:
       - mqtt
     environment:
       MQTT_BROKER: mosquitto-container
-
-  # --------------------------------------------
-  # Backend -----------------------------------
-  # --------------------------------------------
-
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - ./config.json:/app/config.json
-    environment:
-      - PYTHONUNBUFFERED=1
-    depends_on:
-      - mosquitto
-      - influxdb
-
 
 networks:
   mqtt:

@@ -11,11 +11,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Crea una directory per la configurazione
+RUN mkdir -p /app/config
+
+# Copia il file delle soglie nella directory di configurazione
+COPY config/thresholds.json /app/config/thresholds.json
+
 # Copia il codice sorgente
 COPY src/ ./src/
 
 # Imposta variabili d'ambiente
-ENV INFLUX_TOKEN_FILE=/run/secrets/influx_token
+# Rimosso INFLUX_TOKEN_FILE dal Dockerfile, poiché l'Analyzer non lo usa più.
+ENV THRESHOLDS_FILE=/app/config/thresholds.json
 
-# Imposta entrypoint
-CMD ["sh", "-c", "export INFLUX_TOKEN=$(cat ${INFLUX_TOKEN_FILE}) && python src/analyzer.py"]
+# Imposta il comando di avvio per l'applicazione.
+# È stato semplificato dato che non si usa più INFLUX_TOKEN_FILE.
+CMD ["python", "src/analyzer.py"]

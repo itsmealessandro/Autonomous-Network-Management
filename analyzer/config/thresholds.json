@@ -1,0 +1,22 @@
+{
+    "bandwidth": {
+      "WARNING": 70,
+      "CRITICAL": 90
+    },
+    "latency": {
+      "WARNING": 100,
+      "CRITICAL": 200
+    },
+    "packet_loss": {
+      "WARNING": 5,
+      "CRITICAL": 10
+    },
+    "suspicious_activity": {
+      "WARNING": 10,
+      "CRITICAL": 20
+    },
+    "traffic_flow": {
+      "WARNING": 800,
+      "CRITICAL": 1200
+    }
+  }
