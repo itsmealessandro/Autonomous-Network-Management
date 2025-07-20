@@ -14,20 +14,30 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
   private static final String THRESHOLDS_FILE = "/simulated_env/thresholds.json";
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Override
-  public void analyzeBandwidth(List<Double> last5) {
-    System.out.println("[AnalyzeService] analyzeBandwidth called with values: " + last5);
+  private void analyzeMetric(String metricName, List<Double> last5) {
+    System.out.println("[AnalyzeService] " + metricName + " called with values: " + last5);
 
     try {
       JsonNode root = objectMapper.readTree(new File(THRESHOLDS_FILE));
-      double maxThreshold = root.path("bandwidth_usage").path("MAX").asDouble();
+      double maxThreshold = root.path(metricName).path("MAX").asDouble();
+      double minThreshold = root.path(metricName).path("MIN").asDouble();
 
-      long count = last5.stream().filter(val -> val > maxThreshold).count();
+      long countAboveMax = last5.stream().filter(val -> val > maxThreshold).count();
+      long countBelowMin = last5.stream().filter(val -> val < minThreshold).count();
+      long totalBreaches = countAboveMax + countBelowMin;
 
-      if (count == 1) {
-        double exceededValue = last5.stream().filter(val -> val > maxThreshold).findFirst().orElse(-1.0);
-        System.out.println("[AnalyzeService] piccolo problema: valore " + exceededValue +
-            " supera il massimo consentito di " + maxThreshold);
+      if (totalBreaches == 1) {
+        double breachedValue = last5.stream()
+            .filter(val -> val > maxThreshold || val < minThreshold)
+            .findFirst()
+            .orElse(-1.0);
+
+        System.out.println("[AnalyzeService] FALSO ALLARME su " + metricName +
+            ": valore anomalo " + breachedValue +
+            " fuori soglia [" + minThreshold + " - " + maxThreshold + "]");
+      } else if (totalBreaches > 1) {
+        System.out.println("[AnalyzeService] ⚠️ ALLARME su " + metricName +
+            ": " + totalBreaches + " valori fuori soglia [" + minThreshold + " - " + maxThreshold + "]");
       }
 
     } catch (IOException e) {
@@ -35,30 +45,33 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
     }
   }
 
-  // Gli altri metodi restano invariati
+  @Override
+  public void analyzeBandwidth(List<Double> last5) {
+    analyzeMetric("bandwidth_usage", last5);
+  }
 
   @Override
   public void analyzeLatency(List<Double> last5) {
-    System.out.println("[AnalyzeService] analyzeLatency called with values: " + last5);
+    analyzeMetric("latency", last5);
   }
 
   @Override
   public void analyzePacketLoss(List<Double> last5) {
-    System.out.println("[AnalyzeService] analyzePacketLoss called with values: " + last5);
+    analyzeMetric("packet_loss", last5);
   }
 
   @Override
   public void analyzeSuspiciousActivity(List<Double> last5) {
-    System.out.println("[AnalyzeService] analyzeSuspiciousActivity called with values: " + last5);
+    analyzeMetric("suspicious_activity", last5);
   }
 
   @Override
   public void analyzeTrafficFlow(List<Double> last5) {
-    System.out.println("[AnalyzeService] analyzeTrafficFlow called with values: " + last5);
+    analyzeMetric("traffic_flow", last5);
   }
 
   @Override
   public void analyzeNewSensor(String metric, List<Double> last5) {
-    System.out.println("[AnalyzeService] analyzeNewSensor called with values: " + last5);
+    analyzeMetric(metric, last5);
   }
 }
