@@ -18,7 +18,8 @@ import org.springframework.web.client.RestTemplate;
 public class AnalyzeServiceImplementation implements AnalyzeService {
 
   private static final String THRESHOLDS_FILE = "/simulated_env/thresholds.json";
-  private static final String PLANNER_URL = "http://planner:8080/analysis";
+  private static String PLANNER_PORT = System.getenv("PLANNER_PORT");
+  private static final String PLANNER_URL = "http://planner:" + PLANNER_PORT + "/analysis";
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Map<String, String> alarmRecap = new HashMap<>();
 

@@ -99,6 +99,8 @@ services:
   # Analyzer -----------------------------------
   # --------------------------------------------
   analyzer:
+    env_file:
+      - .env
     build: ./analyzer
     container_name: analyzer
     networks:
@@ -119,12 +121,16 @@ services:
   # Planner -----------------------------------
   # --------------------------------------------
   planner:
+    env_file:
+      - .env
     build: ./planner
     container_name: planner
     networks:
       - mqtt
     environment:
       MQTT_BROKER: mosquitto-container
+    ports:
+      - "${PLANNER_PORT}:1883"
 
 
 networks:
