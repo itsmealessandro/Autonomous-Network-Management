@@ -91,7 +91,7 @@ services:
     environment:
       MQTT_BROKER: mosquitto-container
       INFLUX_URL: http://influxdb:8086
-      INFLUX_TOKEN: my-super-secret-token
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
       INFLUX_ORG: network-monitoring
       INFLUX_BUCKET: network-metrics
 
