@@ -114,9 +114,6 @@ services:
       - ./path/locale/token:/app/influx_token
       - ./simulated_env:/simulated_env:ro
 
-    secrets:
-      - influx_token
-
   # --------------------------------------------
   # Planner -----------------------------------
   # --------------------------------------------
@@ -130,7 +127,7 @@ services:
     environment:
       MQTT_BROKER: mosquitto-container
     ports:
-      - "${PLANNER_PORT}:1883"
+      - "${PLANNER_PORT}:8089"
 
 
 networks:
@@ -143,6 +140,3 @@ volumes:
   influx-data:
   grafana-data:
 
-secrets:
-  influx_token:
-    file: ./analyzer/secrets/influx_token
