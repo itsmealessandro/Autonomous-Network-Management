@@ -59,7 +59,7 @@ public class AnalyzeServiceImplementation implements AnalyzeService {
 
     } catch (IOException e) {
       e.printStackTrace();
-      return PossibleSymptoms.FALSE.name(); // oppure lancia un'eccezione
+      return PossibleSymptoms.FALSE.name();
     }
   }
 
